@@ -1,42 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Corbel+Bold:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* H MOLINA Design System - All colors must be HSL */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
+    /* H MOLINA Brand Colors */
+    --h-molina-green: 120 96% 40%; /* RGB(4, 201, 4) */
+    --h-molina-light-blue: 207 65% 42%; /* RGB(38, 114, 176) */
+    --h-molina-medium-blue: 208 92% 30%; /* RGB(6, 84, 148) */
+    --h-molina-dark-blue: 208 97% 24%; /* RGB(2, 67, 120) */
+    --h-molina-dark-bg: 0 1% 16%; /* RGB(40, 40, 41) */
+    
+    /* System Colors */
+    --background: var(--h-molina-dark-bg);
+    --foreground: 0 0% 98%;
+    
+    --card: 0 1% 20%;
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 0 1% 20%;
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: var(--h-molina-green);
+    --primary-foreground: 0 0% 0%;
+    
+    --secondary: var(--h-molina-light-blue);
+    --secondary-foreground: 0 0% 98%;
+    
+    --muted: 0 1% 25%;
+    --muted-foreground: 0 0% 70%;
+    
+    --accent: var(--h-molina-medium-blue);
+    --accent-foreground: 0 0% 98%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 0 1% 30%;
+    --input: 0 1% 25%;
+    --ring: var(--h-molina-green);
+    
+    --radius: 0.75rem;
+    
+    /* Status Colors */
+    --success: var(--h-molina-green);
+    --warning: 45 93% 47%;
+    --info: var(--h-molina-light-blue);
+    --danger: 0 84% 60%;
+    
+    /* Financial Status Colors */
+    --entrada: var(--h-molina-green);
+    --saida: 0 84% 60%;
+    --pago: var(--h-molina-green);
+    --pendente: 45 93% 47%;
+    --atrasado: 0 84% 60%;
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +121,36 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-corbel;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-american-captain;
+  }
+}
+
+@layer components {
+  .h-molina-card {
+    @apply bg-card border border-border rounded-lg p-6 shadow-lg;
+  }
+  
+  .entrada-indicator {
+    @apply bg-green-500/20 text-green-400 border border-green-500/30;
+  }
+  
+  .saida-indicator {
+    @apply bg-red-500/20 text-red-400 border border-red-500/30;
+  }
+  
+  .pago-indicator {
+    @apply bg-green-500/20 text-green-400 border border-green-500/30;
+  }
+  
+  .pendente-indicator {
+    @apply bg-yellow-500/20 text-yellow-400 border border-yellow-500/30;
+  }
+  
+  .atrasado-indicator {
+    @apply bg-red-500/20 text-red-400 border border-red-500/30;
   }
 }

@@ -18,6 +18,10 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'american-captain': ['Alfa Slab One', 'serif'],
+				'corbel': ['Corbel Bold', 'Arial', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -52,6 +56,20 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				// H MOLINA Brand Colors
+				'h-molina': {
+					green: 'hsl(var(--h-molina-green))',
+					'light-blue': 'hsl(var(--h-molina-light-blue))',
+					'medium-blue': 'hsl(var(--h-molina-medium-blue))',
+					'dark-blue': 'hsl(var(--h-molina-dark-blue))',
+					'dark-bg': 'hsl(var(--h-molina-dark-bg))',
+				},
+				// Financial Status Colors
+				entrada: 'hsl(var(--entrada))',
+				saida: 'hsl(var(--saida))',
+				pago: 'hsl(var(--pago))',
+				pendente: 'hsl(var(--pendente))',
+				atrasado: 'hsl(var(--atrasado))',
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',

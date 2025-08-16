@@ -1,12 +1,37 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import Header from "@/components/layout/Header";
+import HomeTab from "./tabs/HomeTab";
+import EntradasTab from "./tabs/EntradasTab";
+import SaidasTab from "./tabs/SaidasTab";
+import RelatoriosTab from "./tabs/RelatoriosTab";
+import ConfiguracaoTab from "./tabs/ConfiguracaoTab";
 
 const Index = () => {
+  const [currentTab, setCurrentTab] = useState("home");
+
+  const renderTabContent = () => {
+    switch (currentTab) {
+      case "home":
+        return <HomeTab />;
+      case "entradas":
+        return <EntradasTab />;
+      case "saidas":
+        return <SaidasTab />;
+      case "relatorios":
+        return <RelatoriosTab />;
+      case "configuracao":
+        return <ConfiguracaoTab />;
+      default:
+        return <HomeTab />;
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Header currentTab={currentTab} onTabChange={setCurrentTab} />
+      <main className="container mx-auto px-4 py-6">
+        {renderTabContent()}
+      </main>
     </div>
   );
 };
