@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Corbel+Bold:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Montserrat:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -121,7 +121,7 @@
   }
 
   body {
-    @apply bg-background text-foreground font-corbel;
+    @apply bg-background text-foreground font-montserrat;
   }
   
   h1, h2, h3, h4, h5, h6 {

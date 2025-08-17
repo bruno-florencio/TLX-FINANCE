@@ -11,6 +11,7 @@ import {
   PieChart,
   TrendingDown
 } from "lucide-react";
+import { exportToExcel, exportToPDF, formatCurrency, formatDate } from "@/utils/exportUtils";
 
 const RelatoriosTab = () => {
   // Mock data para demonstração
@@ -40,15 +41,73 @@ const RelatoriosTab = () => {
     ]
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL"
-    }).format(value);
+  const handleExportFluxoCaixaExcel = () => {
+    const headers = ['Tipo', 'Valor'];
+    const data = [
+      ['Saldo Anterior', formatCurrency(mockReports.fluxoCaixa.saldoAnterior)],
+      ['Entradas', formatCurrency(mockReports.fluxoCaixa.entradas)],
+      ['Saídas', formatCurrency(mockReports.fluxoCaixa.saidas)],
+      ['Saldo Atual', formatCurrency(mockReports.fluxoCaixa.saldoAtual)]
+    ];
+
+    exportToExcel({
+      headers,
+      data,
+      title: 'Fluxo de Caixa',
+      filename: 'fluxo_caixa'
+    });
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("pt-BR");
+  const handleExportDREExcel = () => {
+    const headers = ['Item', 'Valor'];
+    const data = [
+      ['Receitas Totais', formatCurrency(mockReports.dre.receitas)],
+      ['Custos das Vendas', formatCurrency(mockReports.dre.custosVendas)],
+      ['Lucro Bruto', formatCurrency(mockReports.dre.lucroBruto)],
+      ['Despesas Operacionais', formatCurrency(mockReports.dre.despesasOperacionais)],
+      ['Lucro Líquido', formatCurrency(mockReports.dre.lucroLiquido)]
+    ];
+
+    exportToExcel({
+      headers,
+      data,
+      title: 'DRE - Demonstração do Resultado',
+      filename: 'dre_resultado'
+    });
+  };
+
+  const handleExportContasReceberExcel = () => {
+    const headers = ['Cliente', 'Valor', 'Vencimento', 'Status'];
+    const data = mockReports.contasReceber.map(conta => [
+      conta.cliente,
+      formatCurrency(conta.valor),
+      formatDate(conta.vencimento),
+      conta.status
+    ]);
+
+    exportToExcel({
+      headers,
+      data,
+      title: 'Contas a Receber',
+      filename: 'contas_receber'
+    });
+  };
+
+  const handleExportContasPagarExcel = () => {
+    const headers = ['Fornecedor', 'Valor', 'Vencimento', 'Status'];
+    const data = mockReports.contasPagar.map(conta => [
+      conta.fornecedor,
+      formatCurrency(conta.valor),
+      formatDate(conta.vencimento),
+      conta.status
+    ]);
+
+    exportToExcel({
+      headers,
+      data,
+      title: 'Contas a Pagar',
+      filename: 'contas_pagar'
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -84,9 +143,9 @@ const RelatoriosTab = () => {
               <TrendingUp className="w-5 h-5" />
               <span>Fluxo de Caixa</span>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleExportFluxoCaixaExcel}>
               <Download className="w-4 h-4 mr-2" />
-              Export PDF
+              Export Excel
             </Button>
           </CardTitle>
         </CardHeader>
@@ -120,9 +179,9 @@ const RelatoriosTab = () => {
               <BarChart3 className="w-5 h-5" />
               <span>DRE - Demonstração do Resultado</span>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleExportDREExcel}>
               <Download className="w-4 h-4 mr-2" />
-              Export PDF
+              Export Excel
             </Button>
           </CardTitle>
         </CardHeader>
@@ -162,9 +221,9 @@ const RelatoriosTab = () => {
                 <TrendingUp className="w-5 h-5" />
                 <span>Contas a Receber</span>
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleExportContasReceberExcel}>
                 <Download className="w-4 h-4 mr-2" />
-                Export
+                Export Excel
               </Button>
             </CardTitle>
           </CardHeader>
@@ -194,9 +253,9 @@ const RelatoriosTab = () => {
                 <TrendingDown className="w-5 h-5" />
                 <span>Contas a Pagar</span>
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleExportContasPagarExcel}>
                 <Download className="w-4 h-4 mr-2" />
-                Export
+                Export Excel
               </Button>
             </CardTitle>
           </CardHeader>

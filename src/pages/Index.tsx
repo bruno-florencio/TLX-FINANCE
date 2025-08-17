@@ -1,8 +1,9 @@
 import { useState } from "react";
 import Header from "@/components/layout/Header";
 import HomeTab from "./tabs/HomeTab";
-import EntradasTab from "./tabs/EntradasTab";
-import SaidasTab from "./tabs/SaidasTab";
+import EntradasTab from "./tabs/EntradasTabEnhanced";
+import SaidasTab from "./tabs/SaidasTabEnhanced";
+import ContasTab from "./tabs/ContasTab";
 import RelatoriosTab from "./tabs/RelatoriosTab";
 import ConfiguracaoTab from "./tabs/ConfiguracaoTab";
 
@@ -17,6 +18,8 @@ const Index = () => {
         return <EntradasTab />;
       case "saidas":
         return <SaidasTab />;
+      case "contas":
+        return <ContasTab />;
       case "relatorios":
         return <RelatoriosTab />;
       case "configuracao":

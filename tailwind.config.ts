@@ -20,7 +20,7 @@ export default {
 		extend: {
 			fontFamily: {
 				'american-captain': ['Alfa Slab One', 'serif'],
-				'corbel': ['Corbel Bold', 'Arial', 'sans-serif'],
+				'montserrat': ['Montserrat', 'sans-serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',

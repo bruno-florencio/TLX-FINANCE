@@ -22,6 +22,7 @@ const Header = ({ currentTab, onTabChange }: HeaderProps) => {
     { id: "home", label: "Home", icon: Home },
     { id: "entradas", label: "Entradas", icon: TrendingUp },
     { id: "saidas", label: "Saídas", icon: TrendingDown },
+    { id: "contas", label: "Contas e Extratos", icon: FileText },
     { id: "relatorios", label: "Relatórios", icon: FileText },
     { id: "configuracao", label: "Configuração", icon: Settings },
   ];
