@@ -18,62 +18,32 @@ import {
 } from "lucide-react";
 import { exportToExcel, exportToPDF, formatCurrency, formatDate } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
+import { useLancamentos } from "@/hooks/useLancamentos";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
 
 const SaidasTabEnhanced = () => {
   const { toast } = useToast();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  
+  // Form states
+  const [formData, setFormData] = useState({
+    descricao: '',
+    valor: '',
+    categoria_id: '',
+    conta_id: '',
+    centro_custo_id: '',
+    fornecedor_id: '',
+    data_lancamento: new Date().toISOString().split('T')[0],
+    observacoes: ''
+  });
 
-  // Mock data com centro de custo
-  const [saidas, setSaidas] = useState([
-    { 
-      id: "1", 
-      data: "2024-01-15", 
-      descricao: "Pagamento Fornecedor ABC", 
-      valor: 1500.00, 
-      categoria: "Fornecedores",
-      fornecedor: "ABC Ltda",
-      centroCusto: "Produção",
-      conta: "Conta Corrente BB",
-      status: "pendente" 
-    },
-    { 
-      id: "2", 
-      data: "2024-01-14", 
-      descricao: "Aluguel do Escritório", 
-      valor: 2200.00, 
-      categoria: "Despesas Fixas",
-      fornecedor: "Imobiliária XYZ",
-      centroCusto: "Administrativo",
-      conta: "Conta Corrente BB",
-      status: "pago" 
-    },
-    { 
-      id: "3", 
-      data: "2024-01-12", 
-      descricao: "Material de Escritório", 
-      valor: 350.00, 
-      categoria: "Suprimentos",
-      fornecedor: "Papelaria 123",
-      centroCusto: "Administrativo",
-      conta: "Cartão Corporativo",
-      status: "pendente" 
-    },
-    { 
-      id: "4", 
-      data: "2024-01-10", 
-      descricao: "Energia Elétrica", 
-      valor: 480.00, 
-      categoria: "Utilidades",
-      fornecedor: "Companhia Elétrica",
-      centroCusto: "Infraestrutura",
-      conta: "Débito Automático",
-      status: "atrasado" 
-    }
-  ]);
+  // Hooks para dados
+  const { lancamentos, loading, createLancamento, markAsPaid, deleteLancamento } = useLancamentos('saida');
+  const { categorias, contas, centrosCusto, fornecedores } = useSupabaseData();
 
-  const totalSaidas = saidas.reduce((acc, saida) => acc + saida.valor, 0);
-  const saidasPendentes = saidas.filter(s => s.status === "pendente").length;
+  const totalSaidas = lancamentos.reduce((acc, saida) => acc + saida.valor, 0);
+  const saidasPendentes = lancamentos.filter(s => s.status === "pendente").length;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -88,16 +58,8 @@ const SaidasTabEnhanced = () => {
     }
   };
 
-  const handleMarkAsPaid = (id: string) => {
-    setSaidas(prev => 
-      prev.map(s => 
-        s.id === id ? { ...s, status: "pago" } : s
-      )
-    );
-    toast({
-      title: "Pagamento Confirmado",
-      description: "Saída marcada como paga com sucesso.",
-    });
+  const handleMarkAsPaid = async (id: string) => {
+    await markAsPaid(id);
   };
 
   const handleEdit = (saida: any) => {
@@ -107,25 +69,54 @@ const SaidasTabEnhanced = () => {
     });
   };
 
-  const handleDelete = (id: string) => {
-    setSaidas(prev => prev.filter(s => s.id !== id));
-    toast({
-      title: "Saída Excluída",
-      description: "A saída foi removida com sucesso.",
-      variant: "destructive"
-    });
+  const handleDelete = async (id: string) => {
+    await deleteLancamento(id);
+  };
+
+  const handleAddLancamento = async () => {
+    if (!formData.descricao || !formData.valor) {
+      toast({
+        title: "Erro",
+        description: "Preencha os campos obrigatórios.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newLancamento = {
+      tipo: 'saida' as const,
+      descricao: formData.descricao,
+      valor: parseFloat(formData.valor),
+      data_lancamento: formData.data_lancamento,
+      categoria_id: formData.categoria_id || undefined,
+      conta_id: formData.conta_id || undefined,
+      centro_custo_id: formData.centro_custo_id || undefined,
+      fornecedor_id: formData.fornecedor_id || undefined,
+      observacoes: formData.observacoes || undefined,
+    };
+
+    const result = await createLancamento(newLancamento);
+    if (result) {
+      setAddDialogOpen(false);
+      setFormData({
+        descricao: '',
+        valor: '',
+        categoria_id: '',
+        conta_id: '',
+        centro_custo_id: '',
+        fornecedor_id: '',
+        data_lancamento: new Date().toISOString().split('T')[0],
+        observacoes: ''
+      });
+    }
   };
 
   const handleExportExcel = () => {
-    const headers = ['Data', 'Descrição', 'Valor', 'Categoria', 'Fornecedor', 'Centro de Custo', 'Conta', 'Status'];
-    const data = saidas.map(s => [
-      formatDate(s.data),
+    const headers = ['Data', 'Descrição', 'Valor', 'Status'];
+    const data = lancamentos.map(s => [
+      formatDate(s.data_lancamento),
       s.descricao,
       formatCurrency(s.valor),
-      s.categoria,
-      s.fornecedor,
-      s.centroCusto,
-      s.conta,
       s.status
     ]);
 
@@ -138,15 +129,11 @@ const SaidasTabEnhanced = () => {
   };
 
   const handleExportPDF = () => {
-    const headers = ['Data', 'Descrição', 'Valor', 'Categoria', 'Fornecedor', 'Centro de Custo', 'Conta', 'Status'];
-    const data = saidas.map(s => [
-      formatDate(s.data),
+    const headers = ['Data', 'Descrição', 'Valor', 'Status'];
+    const data = lancamentos.map(s => [
+      formatDate(s.data_lancamento),
       s.descricao,
       formatCurrency(s.valor),
-      s.categoria,
-      s.fornecedor,
-      s.centroCusto,
-      s.conta,
       s.status
     ]);
 
@@ -202,7 +189,7 @@ const SaidasTabEnhanced = () => {
               <DollarSign className="w-8 h-8 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Total de Itens</p>
-                <p className="text-2xl font-bold text-primary">{saidas.length}</p>
+                <p className="text-2xl font-bold text-primary">{lancamentos.length}</p>
               </div>
             </div>
           </CardContent>
@@ -284,39 +271,53 @@ const SaidasTabEnhanced = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="descricao">Descrição</Label>
-                        <Input id="descricao" placeholder="Descrição da saída" />
+                        <Input 
+                          id="descricao" 
+                          value={formData.descricao}
+                          onChange={(e) => setFormData(prev => ({ ...prev, descricao: e.target.value }))}
+                          placeholder="Descrição da saída" 
+                        />
                       </div>
                       <div>
                         <Label htmlFor="valor">Valor</Label>
-                        <Input id="valor" type="number" placeholder="0,00" />
+                        <Input 
+                          id="valor" 
+                          type="number" 
+                          step="0.01"
+                          value={formData.valor}
+                          onChange={(e) => setFormData(prev => ({ ...prev, valor: e.target.value }))}
+                          placeholder="0,00" 
+                        />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="categoria">Categoria</Label>
-                        <Select>
+                        <Select value={formData.categoria_id} onValueChange={(value) => setFormData(prev => ({ ...prev, categoria_id: value }))}>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecionar categoria" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="fornecedores">Fornecedores</SelectItem>
-                            <SelectItem value="despesas">Despesas Fixas</SelectItem>
-                            <SelectItem value="suprimentos">Suprimentos</SelectItem>
-                            <SelectItem value="utilidades">Utilidades</SelectItem>
+                            {categorias.filter(cat => cat.tipo === 'saida').map(categoria => (
+                              <SelectItem key={categoria.id} value={categoria.id}>
+                                {categoria.nome}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
                         <Label htmlFor="centroCusto">Centro de Custo</Label>
-                        <Select>
+                        <Select value={formData.centro_custo_id} onValueChange={(value) => setFormData(prev => ({ ...prev, centro_custo_id: value }))}>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecionar centro de custo" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="producao">Produção</SelectItem>
-                            <SelectItem value="administrativo">Administrativo</SelectItem>
-                            <SelectItem value="infraestrutura">Infraestrutura</SelectItem>
-                            <SelectItem value="comercial">Comercial</SelectItem>
+                            {centrosCusto.map(centro => (
+                              <SelectItem key={centro.id} value={centro.id}>
+                                {centro.nome}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -324,24 +325,60 @@ const SaidasTabEnhanced = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="fornecedor">Fornecedor</Label>
-                        <Input id="fornecedor" placeholder="Nome do fornecedor" />
+                        <Select value={formData.fornecedor_id} onValueChange={(value) => setFormData(prev => ({ ...prev, fornecedor_id: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecionar fornecedor" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {fornecedores.map(fornecedor => (
+                              <SelectItem key={fornecedor.id} value={fornecedor.id}>
+                                {fornecedor.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div>
+                        <Label htmlFor="conta">Conta</Label>
+                        <Select value={formData.conta_id} onValueChange={(value) => setFormData(prev => ({ ...prev, conta_id: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecionar conta" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {contas.map(conta => (
+                              <SelectItem key={conta.id} value={conta.id}>
+                                {conta.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
                         <Label htmlFor="data">Data</Label>
-                        <Input id="data" type="date" />
+                        <Input 
+                          id="data" 
+                          type="date" 
+                          value={formData.data_lancamento}
+                          onChange={(e) => setFormData(prev => ({ ...prev, data_lancamento: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="observacoes">Observações</Label>
+                        <Input 
+                          id="observacoes" 
+                          value={formData.observacoes}
+                          onChange={(e) => setFormData(prev => ({ ...prev, observacoes: e.target.value }))}
+                          placeholder="Observações (opcional)" 
+                        />
                       </div>
                     </div>
                     <div className="flex justify-end space-x-2">
                       <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
                         Cancelar
                       </Button>
-                      <Button onClick={() => {
-                        setAddDialogOpen(false);
-                        toast({
-                          title: "Saída Cadastrada",
-                          description: "Nova saída foi adicionada com sucesso.",
-                        });
-                      }}>
+                      <Button onClick={handleAddLancamento}>
                         Salvar Saída
                       </Button>
                     </div>
@@ -361,55 +398,67 @@ const SaidasTabEnhanced = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {saidas.map((saida) => (
-              <div 
-                key={saida.id} 
-                className="flex items-center justify-between p-4 bg-muted/20 rounded-lg border border-border hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-sm">{saida.descricao}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(saida.data)} • {saida.fornecedor}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {saida.categoria} • {saida.centroCusto} • {saida.conta}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="text-right">
-                        <span className="text-lg font-medium text-saida">
-                          {formatCurrency(saida.valor)}
-                        </span>
-                        <div className="mt-1">
-                          {getStatusBadge(saida.status)}
+          {loading ? (
+            <div className="text-center py-8">Carregando...</div>
+          ) : (
+            <div className="space-y-3">
+              {lancamentos.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma saída encontrada
+                </div>
+              ) : (
+                lancamentos.map((saida) => (
+                  <div 
+                    key={saida.id} 
+                    className="flex items-center justify-between p-4 bg-muted/20 rounded-lg border border-border hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-sm">{saida.descricao}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(saida.data_lancamento)}
+                          </p>
+                          {saida.observacoes && (
+                            <p className="text-xs text-muted-foreground">
+                              {saida.observacoes}
+                            </p>
+                          )}
                         </div>
-                      </div>
-                      <div className="flex space-x-1">
-                        {saida.status !== "pago" && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleMarkAsPaid(saida.id)}
-                          >
-                            <Check className="w-4 h-4" />
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(saida)}>
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(saida.id)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center space-x-3">
+                          <div className="text-right">
+                            <span className="text-lg font-medium text-saida">
+                              {formatCurrency(saida.valor)}
+                            </span>
+                            <div className="mt-1">
+                              {getStatusBadge(saida.status)}
+                            </div>
+                          </div>
+                          <div className="flex space-x-1">
+                            {saida.status !== "pago" && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleMarkAsPaid(saida.id)}
+                              >
+                                <Check className="w-4 h-4" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="sm" onClick={() => handleEdit(saida)}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDelete(saida.id)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                ))
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

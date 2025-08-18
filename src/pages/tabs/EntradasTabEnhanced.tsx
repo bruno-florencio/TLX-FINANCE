@@ -18,62 +18,31 @@ import {
 } from "lucide-react";
 import { exportToExcel, exportToPDF, formatCurrency, formatDate } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
+import { useLancamentos } from "@/hooks/useLancamentos";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
 
 const EntradasTabEnhanced = () => {
   const { toast } = useToast();
   const [receiveDialogOpen, setReceiveDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  
+  // Form states
+  const [formData, setFormData] = useState({
+    descricao: '',
+    valor: '',
+    categoria_id: '',
+    conta_id: '',
+    centro_custo_id: '',
+    data_lancamento: new Date().toISOString().split('T')[0],
+    observacoes: ''
+  });
 
-  // Mock data com centro de custo
-  const [entradas, setEntradas] = useState([
-    { 
-      id: "1", 
-      data: "2024-01-15", 
-      descricao: "Venda de Produto A", 
-      valor: 2500.00, 
-      categoria: "Vendas",
-      cliente: "Empresa ABC Ltda",
-      centroCusto: "Comercial",
-      conta: "Conta Corrente BB",
-      status: "pago" 
-    },
-    { 
-      id: "2", 
-      data: "2024-01-14", 
-      descricao: "Consultoria Mensal", 
-      valor: 3200.00, 
-      categoria: "Serviços",
-      cliente: "Cliente XYZ S.A.",
-      centroCusto: "Consultoria",
-      conta: "Conta Digital Nubank",
-      status: "pendente" 
-    },
-    { 
-      id: "3", 
-      data: "2024-01-12", 
-      descricao: "Venda de Produto B", 
-      valor: 1800.00, 
-      categoria: "Vendas",
-      cliente: "Consultoria 123",
-      centroCusto: "Comercial",
-      conta: "Poupança Caixa",
-      status: "atrasado" 
-    },
-    { 
-      id: "4", 
-      data: "2024-01-10", 
-      descricao: "Treinamento Corporativo", 
-      valor: 4500.00, 
-      categoria: "Educação",
-      cliente: "Corporação ABC",
-      centroCusto: "Educação",
-      conta: "Conta Corrente BB",
-      status: "pendente" 
-    }
-  ]);
+  // Hooks para dados
+  const { lancamentos, loading, createLancamento, markAsPaid, deleteLancamento } = useLancamentos('entrada');
+  const { categorias, contas, centrosCusto } = useSupabaseData();
 
-  const totalEntradas = entradas.reduce((acc, entrada) => acc + entrada.valor, 0);
-  const entradasPendentes = entradas.filter(e => e.status === "pendente").length;
+  const totalEntradas = lancamentos.reduce((acc, entrada) => acc + entrada.valor, 0);
+  const entradasPendentes = lancamentos.filter(e => e.status === "pendente").length;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -88,16 +57,8 @@ const EntradasTabEnhanced = () => {
     }
   };
 
-  const handleMarkAsPaid = (id: string) => {
-    setEntradas(prev => 
-      prev.map(e => 
-        e.id === id ? { ...e, status: "pago" } : e
-      )
-    );
-    toast({
-      title: "Recebimento Confirmado",
-      description: "Entrada marcada como paga com sucesso.",
-    });
+  const handleMarkAsPaid = async (id: string) => {
+    await markAsPaid(id);
   };
 
   const handleEdit = (entrada: any) => {
@@ -107,25 +68,52 @@ const EntradasTabEnhanced = () => {
     });
   };
 
-  const handleDelete = (id: string) => {
-    setEntradas(prev => prev.filter(e => e.id !== id));
-    toast({
-      title: "Entrada Excluída",
-      description: "A entrada foi removida com sucesso.",
-      variant: "destructive"
-    });
+  const handleDelete = async (id: string) => {
+    await deleteLancamento(id);
+  };
+
+  const handleAddLancamento = async () => {
+    if (!formData.descricao || !formData.valor) {
+      toast({
+        title: "Erro",
+        description: "Preencha os campos obrigatórios.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newLancamento = {
+      tipo: 'entrada' as const,
+      descricao: formData.descricao,
+      valor: parseFloat(formData.valor),
+      data_lancamento: formData.data_lancamento,
+      categoria_id: formData.categoria_id || undefined,
+      conta_id: formData.conta_id || undefined,
+      centro_custo_id: formData.centro_custo_id || undefined,
+      observacoes: formData.observacoes || undefined,
+    };
+
+    const result = await createLancamento(newLancamento);
+    if (result) {
+      setAddDialogOpen(false);
+      setFormData({
+        descricao: '',
+        valor: '',
+        categoria_id: '',
+        conta_id: '',
+        centro_custo_id: '',
+        data_lancamento: new Date().toISOString().split('T')[0],
+        observacoes: ''
+      });
+    }
   };
 
   const handleExportExcel = () => {
-    const headers = ['Data', 'Descrição', 'Valor', 'Categoria', 'Cliente', 'Centro de Custo', 'Conta', 'Status'];
-    const data = entradas.map(e => [
-      formatDate(e.data),
+    const headers = ['Data', 'Descrição', 'Valor', 'Status'];
+    const data = lancamentos.map(e => [
+      formatDate(e.data_lancamento),
       e.descricao,
       formatCurrency(e.valor),
-      e.categoria,
-      e.cliente,
-      e.centroCusto,
-      e.conta,
       e.status
     ]);
 
@@ -138,15 +126,11 @@ const EntradasTabEnhanced = () => {
   };
 
   const handleExportPDF = () => {
-    const headers = ['Data', 'Descrição', 'Valor', 'Categoria', 'Cliente', 'Centro de Custo', 'Conta', 'Status'];
-    const data = entradas.map(e => [
-      formatDate(e.data),
+    const headers = ['Data', 'Descrição', 'Valor', 'Status'];
+    const data = lancamentos.map(e => [
+      formatDate(e.data_lancamento),
       e.descricao,
       formatCurrency(e.valor),
-      e.categoria,
-      e.cliente,
-      e.centroCusto,
-      e.conta,
       e.status
     ]);
 
@@ -202,7 +186,7 @@ const EntradasTabEnhanced = () => {
               <DollarSign className="w-8 h-8 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Total de Itens</p>
-                <p className="text-2xl font-bold text-primary">{entradas.length}</p>
+                <p className="text-2xl font-bold text-primary">{lancamentos.length}</p>
               </div>
             </div>
           </CardContent>
@@ -284,64 +268,97 @@ const EntradasTabEnhanced = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="descricao">Descrição</Label>
-                        <Input id="descricao" placeholder="Descrição da entrada" />
+                        <Input 
+                          id="descricao" 
+                          value={formData.descricao}
+                          onChange={(e) => setFormData(prev => ({ ...prev, descricao: e.target.value }))}
+                          placeholder="Descrição da entrada" 
+                        />
                       </div>
                       <div>
                         <Label htmlFor="valor">Valor</Label>
-                        <Input id="valor" type="number" placeholder="0,00" />
+                        <Input 
+                          id="valor" 
+                          type="number" 
+                          step="0.01"
+                          value={formData.valor}
+                          onChange={(e) => setFormData(prev => ({ ...prev, valor: e.target.value }))}
+                          placeholder="0,00" 
+                        />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="categoria">Categoria</Label>
-                        <Select>
+                        <Select value={formData.categoria_id} onValueChange={(value) => setFormData(prev => ({ ...prev, categoria_id: value }))}>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecionar categoria" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="vendas">Vendas</SelectItem>
-                            <SelectItem value="servicos">Serviços</SelectItem>
-                            <SelectItem value="consultoria">Consultoria</SelectItem>
-                            <SelectItem value="educacao">Educação</SelectItem>
+                            {categorias.filter(cat => cat.tipo === 'entrada').map(categoria => (
+                              <SelectItem key={categoria.id} value={categoria.id}>
+                                {categoria.nome}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
                         <Label htmlFor="centroCusto">Centro de Custo</Label>
-                        <Select>
+                        <Select value={formData.centro_custo_id} onValueChange={(value) => setFormData(prev => ({ ...prev, centro_custo_id: value }))}>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecionar centro de custo" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="comercial">Comercial</SelectItem>
-                            <SelectItem value="consultoria">Consultoria</SelectItem>
-                            <SelectItem value="educacao">Educação</SelectItem>
-                            <SelectItem value="operacional">Operacional</SelectItem>
+                            {centrosCusto.map(centro => (
+                              <SelectItem key={centro.id} value={centro.id}>
+                                {centro.nome}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="cliente">Cliente</Label>
-                        <Input id="cliente" placeholder="Nome do cliente" />
+                        <Label htmlFor="conta">Conta</Label>
+                        <Select value={formData.conta_id} onValueChange={(value) => setFormData(prev => ({ ...prev, conta_id: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecionar conta" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {contas.map(conta => (
+                              <SelectItem key={conta.id} value={conta.id}>
+                                {conta.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div>
                         <Label htmlFor="data">Data</Label>
-                        <Input id="data" type="date" />
+                        <Input 
+                          id="data" 
+                          type="date" 
+                          value={formData.data_lancamento}
+                          onChange={(e) => setFormData(prev => ({ ...prev, data_lancamento: e.target.value }))}
+                        />
                       </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="observacoes">Observações</Label>
+                      <Input 
+                        id="observacoes" 
+                        value={formData.observacoes}
+                        onChange={(e) => setFormData(prev => ({ ...prev, observacoes: e.target.value }))}
+                        placeholder="Observações (opcional)" 
+                      />
                     </div>
                     <div className="flex justify-end space-x-2">
                       <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
                         Cancelar
                       </Button>
-                      <Button onClick={() => {
-                        setAddDialogOpen(false);
-                        toast({
-                          title: "Entrada Cadastrada",
-                          description: "Nova entrada foi adicionada com sucesso.",
-                        });
-                      }}>
+                      <Button onClick={handleAddLancamento}>
                         Salvar Entrada
                       </Button>
                     </div>
@@ -361,55 +378,67 @@ const EntradasTabEnhanced = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {entradas.map((entrada) => (
-              <div 
-                key={entrada.id} 
-                className="flex items-center justify-between p-4 bg-muted/20 rounded-lg border border-border hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-sm">{entrada.descricao}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(entrada.data)} • {entrada.cliente}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {entrada.categoria} • {entrada.centroCusto} • {entrada.conta}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="text-right">
-                        <span className="text-lg font-medium text-entrada">
-                          {formatCurrency(entrada.valor)}
-                        </span>
-                        <div className="mt-1">
-                          {getStatusBadge(entrada.status)}
+          {loading ? (
+            <div className="text-center py-8">Carregando...</div>
+          ) : (
+            <div className="space-y-3">
+              {lancamentos.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma entrada encontrada
+                </div>
+              ) : (
+                lancamentos.map((entrada) => (
+                  <div 
+                    key={entrada.id} 
+                    className="flex items-center justify-between p-4 bg-muted/20 rounded-lg border border-border hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-sm">{entrada.descricao}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(entrada.data_lancamento)}
+                          </p>
+                          {entrada.observacoes && (
+                            <p className="text-xs text-muted-foreground">
+                              {entrada.observacoes}
+                            </p>
+                          )}
                         </div>
-                      </div>
-                      <div className="flex space-x-1">
-                        {entrada.status !== "pago" && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleMarkAsPaid(entrada.id)}
-                          >
-                            <Check className="w-4 h-4" />
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(entrada)}>
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(entrada.id)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center space-x-3">
+                          <div className="text-right">
+                            <span className="text-lg font-medium text-entrada">
+                              {formatCurrency(entrada.valor)}
+                            </span>
+                            <div className="mt-1">
+                              {getStatusBadge(entrada.status)}
+                            </div>
+                          </div>
+                          <div className="flex space-x-1">
+                            {entrada.status !== "pago" && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleMarkAsPaid(entrada.id)}
+                              >
+                                <Check className="w-4 h-4" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="sm" onClick={() => handleEdit(entrada)}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDelete(entrada.id)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                ))
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
