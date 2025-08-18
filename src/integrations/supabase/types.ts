@@ -14,270 +14,119 @@ export type Database = {
   }
   public: {
     Tables: {
-      categorias: {
+      entradas: {
         Row: {
-          ativa: boolean | null
-          cor: string | null
+          categoria: string
           created_at: string
-          id: string
-          nome: string
-          tipo: string
-          updated_at: string
-        }
-        Insert: {
-          ativa?: boolean | null
-          cor?: string | null
-          created_at?: string
-          id?: string
-          nome: string
-          tipo: string
-          updated_at?: string
-        }
-        Update: {
-          ativa?: boolean | null
-          cor?: string | null
-          created_at?: string
-          id?: string
-          nome?: string
-          tipo?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      centros_custo: {
-        Row: {
-          ativo: boolean | null
-          cor: string | null
-          created_at: string
-          descricao: string | null
-          id: string
-          nome: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean | null
-          cor?: string | null
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          nome: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean | null
-          cor?: string | null
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          nome?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      contas: {
-        Row: {
-          agencia: string | null
-          ativa: boolean | null
-          banco: string | null
-          created_at: string
-          id: string
-          nome: string
-          numero_conta: string | null
-          saldo_atual: number | null
-          saldo_inicial: number | null
-          tipo: string
-          updated_at: string
-        }
-        Insert: {
-          agencia?: string | null
-          ativa?: boolean | null
-          banco?: string | null
-          created_at?: string
-          id?: string
-          nome: string
-          numero_conta?: string | null
-          saldo_atual?: number | null
-          saldo_inicial?: number | null
-          tipo: string
-          updated_at?: string
-        }
-        Update: {
-          agencia?: string | null
-          ativa?: boolean | null
-          banco?: string | null
-          created_at?: string
-          id?: string
-          nome?: string
-          numero_conta?: string | null
-          saldo_atual?: number | null
-          saldo_inicial?: number | null
-          tipo?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      fornecedores: {
-        Row: {
-          ativo: boolean | null
-          created_at: string
-          documento: string | null
-          email: string | null
-          endereco: string | null
-          id: string
-          nome: string
-          telefone: string | null
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean | null
-          created_at?: string
-          documento?: string | null
-          email?: string | null
-          endereco?: string | null
-          id?: string
-          nome: string
-          telefone?: string | null
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean | null
-          created_at?: string
-          documento?: string | null
-          email?: string | null
-          endereco?: string | null
-          id?: string
-          nome?: string
-          telefone?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      lancamentos: {
-        Row: {
-          categoria: string | null
-          centro_custo_id: string | null
-          codigo: number
-          conta_id: string | null
-          criado_em: string | null
-          data: string
+          data_entrada: string
           data_pagamento: string | null
           data_vencimento: string | null
-          descricao: string | null
-          fornecedor_id: string | null
-          id: string
-          numero_documento: string | null
-          observacoes: string | null
-          status: string | null
-          tipo: string
-          valor: number
-        }
-        Insert: {
-          categoria?: string | null
-          centro_custo_id?: string | null
-          codigo?: number
-          conta_id?: string | null
-          criado_em?: string | null
-          data: string
-          data_pagamento?: string | null
-          data_vencimento?: string | null
-          descricao?: string | null
-          fornecedor_id?: string | null
-          id?: string
-          numero_documento?: string | null
-          observacoes?: string | null
-          status?: string | null
-          tipo: string
-          valor: number
-        }
-        Update: {
-          categoria?: string | null
-          centro_custo_id?: string | null
-          codigo?: number
-          conta_id?: string | null
-          criado_em?: string | null
-          data?: string
-          data_pagamento?: string | null
-          data_vencimento?: string | null
-          descricao?: string | null
-          fornecedor_id?: string | null
-          id?: string
-          numero_documento?: string | null
-          observacoes?: string | null
-          status?: string | null
-          tipo?: string
-          valor?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lancamentos_centro_custo_id_fkey"
-            columns: ["centro_custo_id"]
-            isOneToOne: false
-            referencedRelation: "centros_custo"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lancamentos_conta_id_fkey"
-            columns: ["conta_id"]
-            isOneToOne: false
-            referencedRelation: "contas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lancamentos_fornecedor_id_fkey"
-            columns: ["fornecedor_id"]
-            isOneToOne: false
-            referencedRelation: "fornecedores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      transferencias: {
-        Row: {
-          conta_destino_id: string
-          conta_origem_id: string
-          created_at: string
-          data: string
-          descricao: string | null
+          descricao: string
           id: string
           updated_at: string
           valor: number
         }
         Insert: {
-          conta_destino_id: string
-          conta_origem_id: string
+          categoria: string
           created_at?: string
-          data: string
-          descricao?: string | null
+          data_entrada: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao: string
           id?: string
           updated_at?: string
           valor: number
         }
         Update: {
-          conta_destino_id?: string
-          conta_origem_id?: string
+          categoria?: string
           created_at?: string
-          data?: string
-          descricao?: string | null
+          data_entrada?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao?: string
           id?: string
           updated_at?: string
           valor?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "transferencias_conta_destino_id_fkey"
-            columns: ["conta_destino_id"]
-            isOneToOne: false
-            referencedRelation: "contas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transferencias_conta_origem_id_fkey"
-            columns: ["conta_origem_id"]
-            isOneToOne: false
-            referencedRelation: "contas"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      registros: {
+        Row: {
+          categoria: string
+          created_at: string
+          data_entrada: string
+          data_pagamento: string | null
+          data_vencimento: string | null
+          descricao: string
+          id: string
+          status: string
+          tipo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          data_entrada: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao: string
+          id?: string
+          status?: string
+          tipo: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          data_entrada?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao?: string
+          id?: string
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      saidas: {
+        Row: {
+          categoria: string
+          created_at: string
+          data_entrada: string
+          data_pagamento: string | null
+          data_vencimento: string | null
+          descricao: string
+          id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          data_entrada: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao: string
+          id?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          data_entrada?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao?: string
+          id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
       }
     }
     Views: {
