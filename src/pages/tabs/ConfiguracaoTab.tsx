@@ -12,7 +12,8 @@ import {
   Tags,
   Plus,
   Edit,
-  Trash2
+  Trash2,
+  Target
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -51,6 +52,15 @@ const ConfiguracaoTab = () => {
     { id: 3, nome: "Suprimentos", cor: "yellow" },
     { id: 4, nome: "Utilidades", cor: "cyan" },
     { id: 5, nome: "Tecnologia", cor: "indigo" }
+  ]);
+
+  const [centrosCusto] = useState([
+    { id: 1, nome: "Administrativo", cor: "blue", descricao: "Despesas administrativas e gestão" },
+    { id: 2, nome: "Comercial", cor: "green", descricao: "Vendas e marketing" },
+    { id: 3, nome: "Produção", cor: "orange", descricao: "Custos de produção e fabricação" },
+    { id: 4, nome: "Financeiro", cor: "purple", descricao: "Operações financeiras" },
+    { id: 5, nome: "TI", cor: "indigo", descricao: "Tecnologia da informação" },
+    { id: 6, nome: "RH", cor: "pink", descricao: "Recursos humanos" }
   ]);
 
   const handleEdit = (type: string, item: any) => {
@@ -316,6 +326,55 @@ const ConfiguracaoTab = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Centros de Custo */}
+      <Card className="h-molina-card">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Target className="w-5 h-5" />
+              <span>Centros de Custo</span>
+            </div>
+            <Button onClick={() => handleAdd("Centro de Custo")} size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Centro
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {centrosCusto.map((centro) => (
+              <div key={centro.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-4 h-4 rounded-full bg-${centro.cor}-500`}></div>
+                    <div>
+                      <p className="font-medium">{centro.nome}</p>
+                      <p className="text-sm text-muted-foreground">{centro.descricao}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handleEdit("Centro de Custo", centro)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handleDelete("Centro de Custo", centro.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Configurações Futuras */}
       <Card className="h-molina-card">
