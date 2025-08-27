@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import FinanceCard from "@/components/cards/FinanceCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,22 +10,164 @@ import {
   Calendar,
   BarChart3
 } from "lucide-react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend
+} from "recharts";
+import { supabase } from "@/integrations/supabase/client";
+import { startOfMonth, endOfMonth, format, eachDayOfInterval, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const HomeTab = () => {
-  // Mock data - futuramente será integrado com Supabase
-  const mockData = {
-    totalEntradas: 45230.50,
-    totalSaidas: 32150.75,
-    contasAReceber: 12800.00,
-    contasAPagar: 8900.25,
-    saldoAtual: 13079.75,
-    entradasMes: "+12.5%",
-    saidasMes: "+8.3%",
-    proximosVencimentos: [
-      { id: 1, description: "Pagamento Fornecedor ABC", value: 2500.00, date: "2024-01-15", type: "saida" },
-      { id: 2, description: "Recebimento Cliente XYZ", value: 4200.00, date: "2024-01-16", type: "entrada" },
-      { id: 3, description: "Aluguel", value: 1800.00, date: "2024-01-20", type: "saida" },
-    ]
+  const [lancamentos, setLancamentos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totais, setTotais] = useState({
+    totalEntradas: 0,
+    totalSaidas: 0,
+    contasAReceber: 0,
+    contasAPagar: 0,
+    saldoAtual: 0,
+  });
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [proximosVencimentos, setProximosVencimentos] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchLancamentos();
+  }, []);
+
+  const fetchLancamentos = async () => {
+    try {
+      setLoading(true);
+      
+      // Busca todos os lançamentos
+      const { data: lancamentosData, error } = await supabase
+        .from("lancamentos")
+        .select("*")
+        .order("data_lancamento", { ascending: true });
+
+      if (error) throw error;
+
+      if (lancamentosData) {
+        setLancamentos(lancamentosData);
+        calcularTotais(lancamentosData);
+        prepararDadosGrafico(lancamentosData);
+        prepararProximosVencimentos(lancamentosData);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar lançamentos:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calcularTotais = (lancamentos: any[]) => {
+    const hoje = new Date();
+    const inicioMes = startOfMonth(hoje);
+    const fimMes = endOfMonth(hoje);
+    
+    // Filtra lançamentos do mês atual
+    const lancamentosMes = lancamentos.filter((l) => {
+      const dataLancamento = new Date(l.data_lancamento);
+      return dataLancamento >= inicioMes && dataLancamento <= fimMes;
+    });
+
+    // Calcula totais do mês
+    const totalEntradas = lancamentosMes
+      .filter((l) => l.tipo === "entrada")
+      .reduce((sum, l) => sum + Number(l.valor), 0);
+
+    const totalSaidas = lancamentosMes
+      .filter((l) => l.tipo === "saida")
+      .reduce((sum, l) => sum + Number(l.valor), 0);
+
+    // Contas a receber (entradas pendentes)
+    const contasAReceber = lancamentos
+      .filter((l) => l.tipo === "entrada" && l.status === "pendente")
+      .reduce((sum, l) => sum + Number(l.valor), 0);
+
+    // Contas a pagar (saídas pendentes)
+    const contasAPagar = lancamentos
+      .filter((l) => l.tipo === "saida" && l.status === "pendente")
+      .reduce((sum, l) => sum + Number(l.valor), 0);
+
+    // Saldo atual (todas as entradas pagas - todas as saídas pagas)
+    const entradasPagas = lancamentos
+      .filter((l) => l.tipo === "entrada" && l.status === "pago")
+      .reduce((sum, l) => sum + Number(l.valor), 0);
+
+    const saidasPagas = lancamentos
+      .filter((l) => l.tipo === "saida" && l.status === "pago")
+      .reduce((sum, l) => sum + Number(l.valor), 0);
+
+    const saldoAtual = entradasPagas - saidasPagas;
+
+    setTotais({
+      totalEntradas,
+      totalSaidas,
+      contasAReceber,
+      contasAPagar,
+      saldoAtual,
+    });
+  };
+
+  const prepararDadosGrafico = (lancamentos: any[]) => {
+    const hoje = new Date();
+    const inicioMes = startOfMonth(hoje);
+    const fimMes = endOfMonth(hoje);
+    
+    // Criar array com todos os dias do mês
+    const diasDoMes = eachDayOfInterval({ start: inicioMes, end: fimMes });
+    
+    // Agrupar lançamentos por dia
+    const dadosPorDia = diasDoMes.map((dia) => {
+      const diaFormatado = format(dia, "yyyy-MM-dd");
+      const diaLabel = format(dia, "dd/MM");
+      
+      const entradasDia = lancamentos
+        .filter((l) => {
+          const dataLancamento = format(parseISO(l.data_lancamento), "yyyy-MM-dd");
+          return dataLancamento === diaFormatado && l.tipo === "entrada";
+        })
+        .reduce((sum, l) => sum + Number(l.valor), 0);
+
+      const saidasDia = lancamentos
+        .filter((l) => {
+          const dataLancamento = format(parseISO(l.data_lancamento), "yyyy-MM-dd");
+          return dataLancamento === diaFormatado && l.tipo === "saida";
+        })
+        .reduce((sum, l) => sum + Number(l.valor), 0);
+
+      return {
+        dia: diaLabel,
+        entradas: entradasDia,
+        saidas: saidasDia,
+        saldo: entradasDia - saidasDia,
+      };
+    });
+
+    setChartData(dadosPorDia);
+  };
+
+  const prepararProximosVencimentos = (lancamentos: any[]) => {
+    const hoje = new Date();
+    
+    // Filtra lançamentos pendentes com data de vencimento futura
+    const vencimentos = lancamentos
+      .filter((l) => {
+        if (l.status !== "pendente" || !l.data_vencimento) return false;
+        const dataVencimento = new Date(l.data_vencimento);
+        return dataVencimento >= hoje;
+      })
+      .sort((a, b) => new Date(a.data_vencimento).getTime() - new Date(b.data_vencimento).getTime())
+      .slice(0, 5); // Pega os 5 próximos
+
+    setProximosVencimentos(vencimentos);
   };
 
   const formatCurrency = (value: number) => {
@@ -38,11 +181,27 @@ const HomeTab = () => {
     return new Date(dateString).toLocaleDateString("pt-BR");
   };
 
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
+          <p className="font-medium mb-2">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} className="text-sm" style={{ color: entry.color }}>
+              {entry.name}: {formatCurrency(entry.value)}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-american-captain text-foreground">
+        <h1 className="text-3xl text-foreground">
           Dashboard Financeiro
         </h1>
         <p className="text-muted-foreground">
@@ -59,7 +218,7 @@ const HomeTab = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <FinanceCard
           title="Saldo Atual"
-          value={mockData.saldoAtual}
+          value={totais.saldoAtual}
           type="neutral"
           icon={<DollarSign className="w-5 h-5" />}
           subtitle="Posição atual"
@@ -67,40 +226,34 @@ const HomeTab = () => {
         
         <FinanceCard
           title="Entradas do Mês"
-          value={mockData.totalEntradas}
+          value={totais.totalEntradas}
           type="entrada"
           icon={<TrendingUp className="w-5 h-5" />}
-          change={{
-            value: mockData.entradasMes,
-            type: "positive"
-          }}
+          subtitle="Mês atual"
         />
         
         <FinanceCard
           title="Saídas do Mês"
-          value={mockData.totalSaidas}
+          value={totais.totalSaidas}
           type="saida"
           icon={<TrendingDown className="w-5 h-5" />}
-          change={{
-            value: mockData.saidasMes,
-            type: "negative"
-          }}
+          subtitle="Mês atual"
         />
         
         <FinanceCard
           title="Contas a Receber"
-          value={mockData.contasAReceber}
+          value={totais.contasAReceber}
           type="entrada"
           icon={<Calendar className="w-5 h-5" />}
-          subtitle="Próximos 30 dias"
+          subtitle="Pendentes"
         />
         
         <FinanceCard
           title="Contas a Pagar"
-          value={mockData.contasAPagar}
+          value={totais.contasAPagar}
           type="warning"
           icon={<AlertTriangle className="w-5 h-5" />}
-          subtitle="Próximos 30 dias"
+          subtitle="Pendentes"
         />
       </div>
 
@@ -116,44 +269,103 @@ const HomeTab = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {mockData.proximosVencimentos.map((item) => (
-                <div 
-                  key={item.id} 
-                  className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{item.description}</p>
-                    <p className="text-xs text-muted-foreground">{formatDate(item.date)}</p>
+              {proximosVencimentos.length > 0 ? (
+                proximosVencimentos.map((item) => (
+                  <div 
+                    key={item.id} 
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{item.descricao}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Vencimento: {formatDate(item.data_vencimento)}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge 
+                        className={item.tipo === "entrada" ? "entrada-indicator" : "saida-indicator"}
+                      >
+                        {formatCurrency(item.valor)}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge 
-                      className={item.type === "entrada" ? "entrada-indicator" : "saida-indicator"}
-                    >
-                      {formatCurrency(item.value)}
-                    </Badge>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground py-8">
+                  <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Nenhum vencimento próximo</p>
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Área reservada para Gráficos */}
+        {/* Gráfico de Fluxo de Caixa */}
         <Card className="h-molina-card">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <BarChart3 className="w-5 h-5" />
-              <span>Fluxo de Caixa</span>
+              <span>Fluxo de Caixa - {format(new Date(), "MMMM yyyy", { locale: ptBR })}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center h-48 bg-muted/20 rounded-lg border-2 border-dashed border-border">
-              <div className="text-center space-y-2">
-                <BarChart3 className="w-12 h-12 mx-auto text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Gráfico será implementado</p>
-                <p className="text-xs text-muted-foreground">Integração futura com dados</p>
+            {!loading && chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorEntradas" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--entrada))" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="hsl(var(--entrada))" stopOpacity={0.1}/>
+                    </linearGradient>
+                    <linearGradient id="colorSaidas" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--saida))" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="hsl(var(--saida))" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis 
+                    dataKey="dia" 
+                    className="text-xs"
+                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  />
+                  <YAxis 
+                    className="text-xs"
+                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tickFormatter={(value) => `R$ ${value / 1000}k`}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    wrapperStyle={{ fontSize: '12px' }}
+                    iconType="rect"
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="entradas" 
+                    stroke="hsl(var(--entrada))"
+                    fill="url(#colorEntradas)"
+                    name="Entradas"
+                    strokeWidth={2}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="saidas" 
+                    stroke="hsl(var(--saida))"
+                    fill="url(#colorSaidas)"
+                    name="Saídas"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px]">
+                <div className="text-center space-y-2">
+                  <BarChart3 className="w-12 h-12 mx-auto text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    {loading ? "Carregando dados..." : "Nenhum lançamento no mês atual"}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
