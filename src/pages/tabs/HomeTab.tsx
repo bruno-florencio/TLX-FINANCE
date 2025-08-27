@@ -36,6 +36,7 @@ const HomeTab = () => {
   });
   const [chartData, setChartData] = useState<any[]>([]);
   const [proximosVencimentos, setProximosVencimentos] = useState<any[]>([]);
+  const [proximosRecebimentos, setProximosRecebimentos] = useState<any[]>([]);
 
   useEffect(() => {
     fetchLancamentos();
@@ -157,10 +158,10 @@ const HomeTab = () => {
   const prepararProximosVencimentos = (lancamentos: any[]) => {
     const hoje = new Date();
     
-    // Filtra lançamentos pendentes com data de vencimento futura
+    // Filtra lançamentos de saída pendentes com data de vencimento futura
     const vencimentos = lancamentos
       .filter((l) => {
-        if (l.status !== "pendente" || !l.data_vencimento) return false;
+        if (l.tipo !== "saida" || l.status !== "pendente" || !l.data_vencimento) return false;
         const dataVencimento = new Date(l.data_vencimento);
         return dataVencimento >= hoje;
       })
@@ -168,6 +169,18 @@ const HomeTab = () => {
       .slice(0, 5); // Pega os 5 próximos
 
     setProximosVencimentos(vencimentos);
+    
+    // Filtra lançamentos de entrada pendentes com data de vencimento futura
+    const recebimentos = lancamentos
+      .filter((l) => {
+        if (l.tipo !== "entrada" || l.status !== "pendente" || !l.data_vencimento) return false;
+        const dataVencimento = new Date(l.data_vencimento);
+        return dataVencimento >= hoje;
+      })
+      .sort((a, b) => new Date(a.data_vencimento).getTime() - new Date(b.data_vencimento).getTime())
+      .slice(0, 5); // Pega os 5 próximos
+
+    setProximosRecebimentos(recebimentos);
   };
 
   const formatCurrency = (value: number) => {
@@ -257,13 +270,13 @@ const HomeTab = () => {
         />
       </div>
 
-      {/* Próximos Vencimentos e Gráficos */}
+      {/* Próximos Vencimentos e Recebimentos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Próximos Vencimentos */}
         <Card className="h-molina-card">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Calendar className="w-5 h-5" />
+              <AlertTriangle className="w-5 h-5 text-saida" />
               <span>Próximos Vencimentos</span>
             </CardTitle>
           </CardHeader>
@@ -282,9 +295,7 @@ const HomeTab = () => {
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Badge 
-                        className={item.tipo === "entrada" ? "entrada-indicator" : "saida-indicator"}
-                      >
+                      <Badge className="saida-indicator">
                         {formatCurrency(item.valor)}
                       </Badge>
                     </div>
@@ -292,83 +303,122 @@ const HomeTab = () => {
                 ))
               ) : (
                 <div className="text-center text-muted-foreground py-8">
-                  <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Nenhum vencimento próximo</p>
+                  <AlertTriangle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Nenhum pagamento próximo</p>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Gráfico de Fluxo de Caixa */}
+        {/* Próximos Recebimentos */}
         <Card className="h-molina-card">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <BarChart3 className="w-5 h-5" />
-              <span>Fluxo de Caixa - {format(new Date(), "MMMM yyyy", { locale: ptBR })}</span>
+              <TrendingUp className="w-5 h-5 text-entrada" />
+              <span>Próximos Recebimentos</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {!loading && chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="colorEntradas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--entrada))" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="hsl(var(--entrada))" stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="colorSaidas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--saida))" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="hsl(var(--saida))" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis 
-                    dataKey="dia" 
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <YAxis 
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                    tickFormatter={(value) => `R$ ${value / 1000}k`}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend 
-                    wrapperStyle={{ fontSize: '12px' }}
-                    iconType="rect"
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="entradas" 
-                    stroke="hsl(var(--entrada))"
-                    fill="url(#colorEntradas)"
-                    name="Entradas"
-                    strokeWidth={2}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="saidas" 
-                    stroke="hsl(var(--saida))"
-                    fill="url(#colorSaidas)"
-                    name="Saídas"
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[300px]">
-                <div className="text-center space-y-2">
-                  <BarChart3 className="w-12 h-12 mx-auto text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    {loading ? "Carregando dados..." : "Nenhum lançamento no mês atual"}
-                  </p>
+            <div className="space-y-3">
+              {proximosRecebimentos.length > 0 ? (
+                proximosRecebimentos.map((item) => (
+                  <div 
+                    key={item.id} 
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{item.descricao}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Vencimento: {formatDate(item.data_vencimento)}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge className="entrada-indicator">
+                        {formatCurrency(item.valor)}
+                      </Badge>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground py-8">
+                  <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Nenhum recebimento próximo</p>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Gráfico de Fluxo de Caixa */}
+      <Card className="h-molina-card">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <BarChart3 className="w-5 h-5" />
+            <span>Fluxo de Caixa - {format(new Date(), "MMMM yyyy", { locale: ptBR })}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!loading && chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={400}>
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorEntradas" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--entrada))" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="hsl(var(--entrada))" stopOpacity={0.1}/>
+                  </linearGradient>
+                  <linearGradient id="colorSaidas" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--saida))" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="hsl(var(--saida))" stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis 
+                  dataKey="dia" 
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <YAxis 
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickFormatter={(value) => `R$ ${value / 1000}k`}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend 
+                  wrapperStyle={{ fontSize: '12px' }}
+                  iconType="rect"
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="entradas" 
+                  stroke="hsl(var(--entrada))"
+                  fill="url(#colorEntradas)"
+                  name="Entradas"
+                  strokeWidth={2}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="saidas" 
+                  stroke="hsl(var(--saida))"
+                  fill="url(#colorSaidas)"
+                  name="Saídas"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[400px]">
+              <div className="text-center space-y-2">
+                <BarChart3 className="w-12 h-12 mx-auto text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  {loading ? "Carregando dados..." : "Nenhum lançamento no mês atual"}
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Área de Atualizações Futuras */}
       <Card className="h-molina-card">
