@@ -315,32 +315,27 @@ const HomeTab = () => {
                 pagamentosAtrasados.map((item) => (
                   <div 
                     key={item.id} 
-                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border"
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <User className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Fornecedor:</span>
-                        <span className="text-sm font-medium">{item.fornecedor_nome}</span>
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="flex items-center gap-2 min-w-[140px]">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-medium truncate">{item.fornecedor_nome}</span>
+                      </div>
+                      <div className="flex items-center gap-2 min-w-[120px]">
+                        <Tag className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground truncate">{item.categoria_nome}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Tag className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Categoria:</span>
-                        <span className="text-sm">{item.categoria_nome}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Vencimento:</span>
-                        <span className="text-sm font-medium text-saida">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-saida font-medium">
                           {formatDate(item.data_vencimento)}
                         </span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end">
-                      <Badge className="saida-indicator">
-                        {formatCurrency(item.valor)}
-                      </Badge>
-                    </div>
+                    <Badge className="saida-indicator ml-4">
+                      {formatCurrency(item.valor)}
+                    </Badge>
                   </div>
                 ))
               ) : (
@@ -367,32 +362,27 @@ const HomeTab = () => {
                 recebimentosAtrasados.map((item) => (
                   <div 
                     key={item.id} 
-                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border"
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <User className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Cliente:</span>
-                        <span className="text-sm font-medium">{item.fornecedor_nome}</span>
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="flex items-center gap-2 min-w-[140px]">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-medium truncate">{item.fornecedor_nome}</span>
+                      </div>
+                      <div className="flex items-center gap-2 min-w-[120px]">
+                        <Tag className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground truncate">{item.categoria_nome}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Tag className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Categoria:</span>
-                        <span className="text-sm">{item.categoria_nome}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Vencimento:</span>
-                        <span className="text-sm font-medium text-entrada">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-entrada font-medium">
                           {formatDate(item.data_vencimento)}
                         </span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end">
-                      <Badge className="entrada-indicator">
-                        {formatCurrency(item.valor)}
-                      </Badge>
-                    </div>
+                    <Badge className="entrada-indicator ml-4">
+                      {formatCurrency(item.valor)}
+                    </Badge>
                   </div>
                 ))
               ) : (
