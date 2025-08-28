@@ -8,7 +8,9 @@ import {
   DollarSign, 
   AlertTriangle,
   Calendar,
-  BarChart3
+  BarChart3,
+  User,
+  Tag
 } from "lucide-react";
 import {
   AreaChart,
@@ -37,6 +39,8 @@ const HomeTab = () => {
   const [chartData, setChartData] = useState<any[]>([]);
   const [pagamentosAtrasados, setPagamentosAtrasados] = useState<any[]>([]);
   const [recebimentosAtrasados, setRecebimentosAtrasados] = useState<any[]>([]);
+  const [categorias, setCategorias] = useState<any[]>([]);
+  const [fornecedores, setFornecedores] = useState<any[]>([]);
 
   useEffect(() => {
     fetchLancamentos();
@@ -46,22 +50,34 @@ const HomeTab = () => {
     try {
       setLoading(true);
       
-      // Busca todos os lançamentos
-      const { data: lancamentosData, error } = await supabase
-        .from("lancamentos")
-        .select("*")
-        .order("data_lancamento", { ascending: true });
+      // Busca todos os lançamentos, categorias e fornecedores
+      const [lancamentosResult, categoriasResult, fornecedoresResult] = await Promise.all([
+        supabase
+          .from("lancamentos")
+          .select("*")
+          .order("data_lancamento", { ascending: true }),
+        supabase
+          .from("categorias")
+          .select("*"),
+        supabase
+          .from("fornecedores")
+          .select("*")
+      ]);
 
-      if (error) throw error;
+      if (lancamentosResult.error) throw lancamentosResult.error;
+      if (categoriasResult.error) throw categoriasResult.error;
+      if (fornecedoresResult.error) throw fornecedoresResult.error;
 
-      if (lancamentosData) {
-        setLancamentos(lancamentosData);
-        calcularTotais(lancamentosData);
-        prepararDadosGrafico(lancamentosData);
-        prepararItensAtrasados(lancamentosData);
+      if (lancamentosResult.data) {
+        setLancamentos(lancamentosResult.data);
+        setCategorias(categoriasResult.data || []);
+        setFornecedores(fornecedoresResult.data || []);
+        calcularTotais(lancamentosResult.data);
+        prepararDadosGrafico(lancamentosResult.data);
+        prepararItensAtrasados(lancamentosResult.data, categoriasResult.data || [], fornecedoresResult.data || []);
       }
     } catch (error) {
-      console.error("Erro ao buscar lançamentos:", error);
+      console.error("Erro ao buscar dados:", error);
     } finally {
       setLoading(false);
     }
@@ -154,9 +170,20 @@ const HomeTab = () => {
     setChartData(dadosPorDia);
   };
 
-  const prepararItensAtrasados = (lancamentos: any[]) => {
+  const prepararItensAtrasados = (lancamentos: any[], categorias: any[], fornecedores: any[]) => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0); // Normaliza para o início do dia
+    
+    // Função auxiliar para enriquecer lançamento com dados relacionados
+    const enriquecerLancamento = (lancamento: any) => {
+      const categoria = categorias.find(c => c.id === lancamento.categoria_id);
+      const fornecedor = fornecedores.find(f => f.id === lancamento.fornecedor_id);
+      return {
+        ...lancamento,
+        categoria_nome: categoria?.nome || '-',
+        fornecedor_nome: fornecedor?.nome || '-'
+      };
+    };
     
     // Filtra lançamentos de saída pendentes com data de vencimento passada
     const pagamentosAtrasados = lancamentos
@@ -165,6 +192,7 @@ const HomeTab = () => {
         const dataVencimento = new Date(l.data_vencimento);
         return dataVencimento < hoje;
       })
+      .map(enriquecerLancamento)
       .sort((a, b) => new Date(b.data_vencimento).getTime() - new Date(a.data_vencimento).getTime())
       .slice(0, 5); // Pega os 5 mais recentes
 
@@ -177,6 +205,7 @@ const HomeTab = () => {
         const dataVencimento = new Date(l.data_vencimento);
         return dataVencimento < hoje;
       })
+      .map(enriquecerLancamento)
       .sort((a, b) => new Date(b.data_vencimento).getTime() - new Date(a.data_vencimento).getTime())
       .slice(0, 5); // Pega os 5 mais recentes
 
@@ -288,13 +317,26 @@ const HomeTab = () => {
                     key={item.id} 
                     className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border"
                   >
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{item.descricao}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Venceu em: {formatDate(item.data_vencimento)}
-                      </p>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <User className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Fornecedor:</span>
+                        <span className="text-sm font-medium">{item.fornecedor_nome}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Categoria:</span>
+                        <span className="text-sm">{item.categoria_nome}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Vencimento:</span>
+                        <span className="text-sm font-medium text-saida">
+                          {formatDate(item.data_vencimento)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-col items-end">
                       <Badge className="saida-indicator">
                         {formatCurrency(item.valor)}
                       </Badge>
@@ -327,13 +369,26 @@ const HomeTab = () => {
                     key={item.id} 
                     className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border"
                   >
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{item.descricao}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Venceu em: {formatDate(item.data_vencimento)}
-                      </p>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <User className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Cliente:</span>
+                        <span className="text-sm font-medium">{item.fornecedor_nome}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Categoria:</span>
+                        <span className="text-sm">{item.categoria_nome}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Vencimento:</span>
+                        <span className="text-sm font-medium text-entrada">
+                          {formatDate(item.data_vencimento)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-col items-end">
                       <Badge className="entrada-indicator">
                         {formatCurrency(item.valor)}
                       </Badge>
