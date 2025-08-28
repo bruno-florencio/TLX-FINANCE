@@ -21,7 +21,7 @@ import {
   Legend
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfMonth, endOfMonth, format, eachDayOfInterval, parseISO } from "date-fns";
+import { startOfMonth, endOfMonth, format, eachDayOfInterval, parseISO, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const HomeTab = () => {
@@ -35,8 +35,8 @@ const HomeTab = () => {
     saldoAtual: 0,
   });
   const [chartData, setChartData] = useState<any[]>([]);
-  const [proximosVencimentos, setProximosVencimentos] = useState<any[]>([]);
-  const [proximosRecebimentos, setProximosRecebimentos] = useState<any[]>([]);
+  const [pagamentosAtrasados, setPagamentosAtrasados] = useState<any[]>([]);
+  const [recebimentosAtrasados, setRecebimentosAtrasados] = useState<any[]>([]);
 
   useEffect(() => {
     fetchLancamentos();
@@ -58,7 +58,7 @@ const HomeTab = () => {
         setLancamentos(lancamentosData);
         calcularTotais(lancamentosData);
         prepararDadosGrafico(lancamentosData);
-        prepararProximosVencimentos(lancamentosData);
+        prepararItensAtrasados(lancamentosData);
       }
     } catch (error) {
       console.error("Erro ao buscar lançamentos:", error);
@@ -119,14 +119,13 @@ const HomeTab = () => {
 
   const prepararDadosGrafico = (lancamentos: any[]) => {
     const hoje = new Date();
-    const inicioMes = startOfMonth(hoje);
-    const fimMes = endOfMonth(hoje);
+    const fimPeriodo = addDays(hoje, 30);
     
-    // Criar array com todos os dias do mês
-    const diasDoMes = eachDayOfInterval({ start: inicioMes, end: fimMes });
+    // Criar array com os próximos 30 dias
+    const proximosDias = eachDayOfInterval({ start: hoje, end: fimPeriodo });
     
     // Agrupar lançamentos por dia
-    const dadosPorDia = diasDoMes.map((dia) => {
+    const dadosPorDia = proximosDias.map((dia) => {
       const diaFormatado = format(dia, "yyyy-MM-dd");
       const diaLabel = format(dia, "dd/MM");
       
@@ -155,32 +154,33 @@ const HomeTab = () => {
     setChartData(dadosPorDia);
   };
 
-  const prepararProximosVencimentos = (lancamentos: any[]) => {
+  const prepararItensAtrasados = (lancamentos: any[]) => {
     const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0); // Normaliza para o início do dia
     
-    // Filtra lançamentos de saída pendentes com data de vencimento futura
-    const vencimentos = lancamentos
+    // Filtra lançamentos de saída pendentes com data de vencimento passada
+    const pagamentosAtrasados = lancamentos
       .filter((l) => {
         if (l.tipo !== "saida" || l.status !== "pendente" || !l.data_vencimento) return false;
         const dataVencimento = new Date(l.data_vencimento);
-        return dataVencimento >= hoje;
+        return dataVencimento < hoje;
       })
-      .sort((a, b) => new Date(a.data_vencimento).getTime() - new Date(b.data_vencimento).getTime())
-      .slice(0, 5); // Pega os 5 próximos
+      .sort((a, b) => new Date(b.data_vencimento).getTime() - new Date(a.data_vencimento).getTime())
+      .slice(0, 5); // Pega os 5 mais recentes
 
-    setProximosVencimentos(vencimentos);
+    setPagamentosAtrasados(pagamentosAtrasados);
     
-    // Filtra lançamentos de entrada pendentes com data de vencimento futura
-    const recebimentos = lancamentos
+    // Filtra lançamentos de entrada pendentes com data de vencimento passada
+    const recebimentosAtrasados = lancamentos
       .filter((l) => {
         if (l.tipo !== "entrada" || l.status !== "pendente" || !l.data_vencimento) return false;
         const dataVencimento = new Date(l.data_vencimento);
-        return dataVencimento >= hoje;
+        return dataVencimento < hoje;
       })
-      .sort((a, b) => new Date(a.data_vencimento).getTime() - new Date(b.data_vencimento).getTime())
-      .slice(0, 5); // Pega os 5 próximos
+      .sort((a, b) => new Date(b.data_vencimento).getTime() - new Date(a.data_vencimento).getTime())
+      .slice(0, 5); // Pega os 5 mais recentes
 
-    setProximosRecebimentos(recebimentos);
+    setRecebimentosAtrasados(recebimentosAtrasados);
   };
 
   const formatCurrency = (value: number) => {
@@ -270,20 +270,20 @@ const HomeTab = () => {
         />
       </div>
 
-      {/* Próximos Vencimentos e Recebimentos */}
+      {/* Pagamentos e Recebimentos Atrasados */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Próximos Vencimentos */}
+        {/* Pagamentos Atrasados */}
         <Card className="h-molina-card">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <AlertTriangle className="w-5 h-5 text-saida" />
-              <span>Próximos Vencimentos</span>
+              <span>Pagamentos Atrasados</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {proximosVencimentos.length > 0 ? (
-                proximosVencimentos.map((item) => (
+              {pagamentosAtrasados.length > 0 ? (
+                pagamentosAtrasados.map((item) => (
                   <div 
                     key={item.id} 
                     className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border"
@@ -291,7 +291,7 @@ const HomeTab = () => {
                     <div className="flex-1">
                       <p className="font-medium text-sm">{item.descricao}</p>
                       <p className="text-xs text-muted-foreground">
-                        Vencimento: {formatDate(item.data_vencimento)}
+                        Venceu em: {formatDate(item.data_vencimento)}
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -304,25 +304,25 @@ const HomeTab = () => {
               ) : (
                 <div className="text-center text-muted-foreground py-8">
                   <AlertTriangle className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Nenhum pagamento próximo</p>
+                  <p className="text-sm">Nenhum pagamento atrasado</p>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Próximos Recebimentos */}
+        {/* Recebimentos Atrasados */}
         <Card className="h-molina-card">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <TrendingUp className="w-5 h-5 text-entrada" />
-              <span>Próximos Recebimentos</span>
+              <span>Recebimentos Atrasados</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {proximosRecebimentos.length > 0 ? (
-                proximosRecebimentos.map((item) => (
+              {recebimentosAtrasados.length > 0 ? (
+                recebimentosAtrasados.map((item) => (
                   <div 
                     key={item.id} 
                     className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border"
@@ -330,7 +330,7 @@ const HomeTab = () => {
                     <div className="flex-1">
                       <p className="font-medium text-sm">{item.descricao}</p>
                       <p className="text-xs text-muted-foreground">
-                        Vencimento: {formatDate(item.data_vencimento)}
+                        Venceu em: {formatDate(item.data_vencimento)}
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -343,7 +343,7 @@ const HomeTab = () => {
               ) : (
                 <div className="text-center text-muted-foreground py-8">
                   <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Nenhum recebimento próximo</p>
+                  <p className="text-sm">Nenhum recebimento atrasado</p>
                 </div>
               )}
             </div>
@@ -356,7 +356,7 @@ const HomeTab = () => {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <BarChart3 className="w-5 h-5" />
-            <span>Fluxo de Caixa - {format(new Date(), "MMMM yyyy", { locale: ptBR })}</span>
+            <span>Fluxo de Caixa - Próximos 30 dias</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
