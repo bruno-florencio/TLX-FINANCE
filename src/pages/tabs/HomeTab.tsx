@@ -312,32 +312,44 @@ const HomeTab = () => {
           <CardContent>
             <div className="space-y-3">
               {pagamentosAtrasados.length > 0 ? (
-                pagamentosAtrasados.map((item) => (
-                  <div 
-                    key={item.id} 
-                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                  >
+                <>
+                  {/* Cabeçalho das colunas */}
+                  <div className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-muted-foreground border-b border-border">
                     <div className="flex items-center gap-4 flex-1">
-                      <div className="flex items-center gap-2 min-w-[140px]">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm font-medium truncate">{item.fornecedor_nome}</span>
-                      </div>
-                      <div className="flex items-center gap-2 min-w-[120px]">
-                        <Tag className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground truncate">{item.categoria_nome}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-saida font-medium">
-                          {formatDate(item.data_vencimento)}
-                        </span>
-                      </div>
+                      <div className="min-w-[140px]">Fornecedor</div>
+                      <div className="min-w-[120px]">Categoria</div>
+                      <div className="min-w-[100px]">Vencimento</div>
                     </div>
-                    <Badge className="saida-indicator ml-4">
-                      {formatCurrency(item.valor)}
-                    </Badge>
+                    <div className="min-w-[100px] text-right">Valor</div>
                   </div>
-                ))
+                  {/* Linhas de dados */}
+                  {pagamentosAtrasados.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="flex items-center gap-2 min-w-[140px]">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm font-medium truncate">{item.fornecedor_nome}</span>
+                        </div>
+                        <div className="flex items-center gap-2 min-w-[120px]">
+                          <Tag className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground truncate">{item.categoria_nome}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm text-saida font-medium">
+                            {formatDate(item.data_vencimento)}
+                          </span>
+                        </div>
+                      </div>
+                      <Badge className="saida-indicator ml-4">
+                        {formatCurrency(item.valor)}
+                      </Badge>
+                    </div>
+                  ))}
+                </>
               ) : (
                 <div className="text-center text-muted-foreground py-8">
                   <AlertTriangle className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -359,32 +371,44 @@ const HomeTab = () => {
           <CardContent>
             <div className="space-y-3">
               {recebimentosAtrasados.length > 0 ? (
-                recebimentosAtrasados.map((item) => (
-                  <div 
-                    key={item.id} 
-                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                  >
+                <>
+                  {/* Cabeçalho das colunas */}
+                  <div className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-muted-foreground border-b border-border">
                     <div className="flex items-center gap-4 flex-1">
-                      <div className="flex items-center gap-2 min-w-[140px]">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm font-medium truncate">{item.fornecedor_nome}</span>
-                      </div>
-                      <div className="flex items-center gap-2 min-w-[120px]">
-                        <Tag className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground truncate">{item.categoria_nome}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-entrada font-medium">
-                          {formatDate(item.data_vencimento)}
-                        </span>
-                      </div>
+                      <div className="min-w-[140px]">Cliente</div>
+                      <div className="min-w-[120px]">Categoria</div>
+                      <div className="min-w-[100px]">Vencimento</div>
                     </div>
-                    <Badge className="entrada-indicator ml-4">
-                      {formatCurrency(item.valor)}
-                    </Badge>
+                    <div className="min-w-[100px] text-right">Valor</div>
                   </div>
-                ))
+                  {/* Linhas de dados */}
+                  {recebimentosAtrasados.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="flex items-center gap-2 min-w-[140px]">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm font-medium truncate">{item.fornecedor_nome}</span>
+                        </div>
+                        <div className="flex items-center gap-2 min-w-[120px]">
+                          <Tag className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground truncate">{item.categoria_nome}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm text-entrada font-medium">
+                            {formatDate(item.data_vencimento)}
+                          </span>
+                        </div>
+                      </div>
+                      <Badge className="entrada-indicator ml-4">
+                        {formatCurrency(item.valor)}
+                      </Badge>
+                    </div>
+                  ))}
+                </>
               ) : (
                 <div className="text-center text-muted-foreground py-8">
                   <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-50" />
