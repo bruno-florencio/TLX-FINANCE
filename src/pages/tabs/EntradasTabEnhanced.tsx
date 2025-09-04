@@ -42,7 +42,14 @@ const EntradasTabEnhanced = () => {
   const { categorias, contas, centrosCusto } = useSupabaseData();
 
   const totalEntradas = lancamentos.reduce((acc, entrada) => acc + entrada.valor, 0);
-  const entradasPendentes = lancamentos.filter(e => e.status === "pendente").length;
+  const entradasPendentes = lancamentos.filter(e => e.status === "pendente");
+  const totalPendentes = entradasPendentes.reduce((acc, entrada) => acc + entrada.valor, 0);
+  const entradasAtrasadas = lancamentos.filter(e => 
+    e.status === "pendente" && 
+    e.data_vencimento && 
+    new Date(e.data_vencimento) < new Date()
+  );
+  const totalAtrasados = entradasAtrasadas.reduce((acc, entrada) => acc + entrada.valor, 0);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -174,7 +181,7 @@ const EntradasTabEnhanced = () => {
               <Calendar className="w-8 h-8 text-pendente" />
               <div>
                 <p className="text-sm text-muted-foreground">Pendentes</p>
-                <p className="text-2xl font-bold text-pendente">{entradasPendentes}</p>
+                <p className="text-2xl font-bold text-pendente">{formatCurrency(totalPendentes)}</p>
               </div>
             </div>
           </CardContent>
@@ -183,10 +190,10 @@ const EntradasTabEnhanced = () => {
         <Card className="h-molina-card">
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
-              <DollarSign className="w-8 h-8 text-primary" />
+              <DollarSign className="w-8 h-8 text-atrasado" />
               <div>
-                <p className="text-sm text-muted-foreground">Total de Itens</p>
-                <p className="text-2xl font-bold text-primary">{lancamentos.length}</p>
+                <p className="text-sm text-muted-foreground">Atrasados</p>
+                <p className="text-2xl font-bold text-atrasado">{formatCurrency(totalAtrasados)}</p>
               </div>
             </div>
           </CardContent>
@@ -381,61 +388,83 @@ const EntradasTabEnhanced = () => {
           {loading ? (
             <div className="text-center py-8">Carregando...</div>
           ) : (
-            <div className="space-y-3">
+            <div className="overflow-x-auto">
               {lancamentos.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   Nenhuma entrada encontrada
                 </div>
               ) : (
-                lancamentos.map((entrada) => (
-                  <div 
-                    key={entrada.id} 
-                    className="flex items-center justify-between p-4 bg-muted/20 rounded-lg border border-border hover:bg-muted/30 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-sm">{entrada.descricao}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(entrada.data_lancamento)}
-                          </p>
-                          {entrada.observacoes && (
-                            <p className="text-xs text-muted-foreground">
-                              {entrada.observacoes}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <div className="text-right">
-                            <span className="text-lg font-medium text-entrada">
-                              {formatCurrency(entrada.valor)}
-                            </span>
-                            <div className="mt-1">
-                              {getStatusBadge(entrada.status)}
-                            </div>
-                          </div>
-                          <div className="flex space-x-1">
-                            {entrada.status !== "pago" && (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Cliente</th>
+                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Categoria</th>
+                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Data Vencimento</th>
+                      <th className="text-right px-4 py-3 text-sm font-medium text-muted-foreground">Valor</th>
+                      <th className="text-center px-4 py-3 text-sm font-medium text-muted-foreground">Status</th>
+                      <th className="text-center px-4 py-3 text-sm font-medium text-muted-foreground">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lancamentos.map((entrada) => {
+                      const categoria = categorias.find(cat => cat.id === entrada.categoria_id);
+                      const isAtrasado = entrada.status === 'pendente' && 
+                                       entrada.data_vencimento && 
+                                       new Date(entrada.data_vencimento) < new Date();
+                      
+                      return (
+                        <tr 
+                          key={entrada.id} 
+                          className="border-b border-border hover:bg-muted/30 transition-colors"
+                        >
+                          <td className="px-4 py-3 text-sm">{entrada.descricao}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">
+                            {categoria?.nome || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">
+                            {entrada.data_vencimento ? formatDate(entrada.data_vencimento) : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-right font-medium text-entrada">
+                            {formatCurrency(entrada.valor)}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {getStatusBadge(isAtrasado ? 'atrasado' : entrada.status)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-center space-x-1">
+                              {entrada.status !== "pago" && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => handleMarkAsPaid(entrada.id)}
+                                  title="Marcar como pago"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </Button>
+                              )}
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                onClick={() => handleMarkAsPaid(entrada.id)}
+                                onClick={() => handleEdit(entrada)}
+                                title="Editar"
                               >
-                                <Check className="w-4 h-4" />
+                                <Edit className="w-4 h-4" />
                               </Button>
-                            )}
-                            <Button variant="ghost" size="sm" onClick={() => handleEdit(entrada)}>
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleDelete(entrada.id)}>
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleDelete(entrada.id)}
+                                title="Excluir"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               )}
             </div>
           )}
