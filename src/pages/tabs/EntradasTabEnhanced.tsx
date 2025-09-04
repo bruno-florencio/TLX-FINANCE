@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   TrendingUp, 
   Plus, 
@@ -25,6 +26,7 @@ const EntradasTabEnhanced = () => {
   const { toast } = useToast();
   const [receiveDialogOpen, setReceiveDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
   
   // Form states
   const [formData, setFormData] = useState({
@@ -77,6 +79,49 @@ const EntradasTabEnhanced = () => {
 
   const handleDelete = async (id: string) => {
     await deleteLancamento(id);
+  };
+
+  const handleSelectItem = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedItems([...selectedItems, id]);
+    } else {
+      setSelectedItems(selectedItems.filter(item => item !== id));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const pendingIds = lancamentos
+        .filter(e => e.status === "pendente")
+        .map(e => e.id);
+      setSelectedItems(pendingIds);
+    } else {
+      setSelectedItems([]);
+    }
+  };
+
+  const handleReceiveSelected = async () => {
+    if (selectedItems.length === 0) {
+      toast({
+        title: "Atenção",
+        description: "Selecione pelo menos um lançamento para receber.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Marcar todos os itens selecionados como pagos
+    for (const id of selectedItems) {
+      await markAsPaid(id);
+    }
+
+    toast({
+      title: "Recebimento Registrado",
+      description: `${selectedItems.length} lançamento(s) marcado(s) como pago(s).`,
+    });
+    
+    setSelectedItems([]);
+    setReceiveDialogOpen(false);
   };
 
   const handleAddLancamento = async () => {
@@ -209,56 +254,15 @@ const EntradasTabEnhanced = () => {
               <span>Lançamentos de Entrada</span>
             </div>
             <div className="flex space-x-2">
-              <Dialog open={receiveDialogOpen} onOpenChange={setReceiveDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Check className="w-4 h-4 mr-2" />
-                    Receber
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Registrar Recebimento</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="valorRecebimento">Valor Recebido</Label>
-                      <Input id="valorRecebimento" type="number" placeholder="0,00" />
-                    </div>
-                    <div>
-                      <Label htmlFor="contaRecebimento">Conta de Destino</Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecionar conta" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="bb">Conta Corrente BB</SelectItem>
-                          <SelectItem value="nubank">Conta Digital Nubank</SelectItem>
-                          <SelectItem value="caixa">Poupança Caixa</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="dataRecebimento">Data do Recebimento</Label>
-                      <Input id="dataRecebimento" type="date" />
-                    </div>
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" onClick={() => setReceiveDialogOpen(false)}>
-                        Cancelar
-                      </Button>
-                      <Button onClick={() => {
-                        setReceiveDialogOpen(false);
-                        toast({
-                          title: "Recebimento Registrado",
-                          description: "O recebimento foi confirmado com sucesso.",
-                        });
-                      }}>
-                        Confirmar Recebimento
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleReceiveSelected}
+                disabled={selectedItems.length === 0}
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Receber ({selectedItems.length})
+              </Button>
 
               <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
                 <DialogTrigger asChild>
@@ -397,6 +401,12 @@ const EntradasTabEnhanced = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
+                      <th className="w-12 px-4 py-3">
+                        <Checkbox 
+                          checked={selectedItems.length === lancamentos.filter(e => e.status === "pendente").length && lancamentos.filter(e => e.status === "pendente").length > 0}
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </th>
                       <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Cliente</th>
                       <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Categoria</th>
                       <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Data Vencimento</th>
@@ -417,6 +427,13 @@ const EntradasTabEnhanced = () => {
                           key={entrada.id} 
                           className="border-b border-border hover:bg-muted/30 transition-colors"
                         >
+                          <td className="w-12 px-4 py-3">
+                            <Checkbox 
+                              checked={selectedItems.includes(entrada.id)}
+                              onCheckedChange={(checked) => handleSelectItem(entrada.id, checked as boolean)}
+                              disabled={entrada.status === "pago"}
+                            />
+                          </td>
                           <td className="px-4 py-3 text-sm">{entrada.descricao}</td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">
                             {categoria?.nome || '-'}
