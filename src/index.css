@@ -55,9 +55,9 @@
     /* Financial Status Colors */
     --entrada: var(--h-molina-green);
     --saida: 0 84% 60%;
-    --pago: var(--h-molina-green);
-    --pendente: 45 93% 47%;
-    --atrasado: 0 84% 60%;
+    --pago: 120 60% 50%; /* Verde */
+    --pendente: 45 93% 47%; /* Amarelo */
+    --atrasado: 0 84% 50%; /* Vermelho */
 
     --sidebar-background: 0 0% 98%;
 
