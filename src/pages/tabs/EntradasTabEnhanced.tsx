@@ -54,11 +54,11 @@ const EntradasTabEnhanced = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pago":
-        return <Badge className="pago-indicator">Pago</Badge>;
+        return <Badge className="bg-green-500/20 text-green-500 border border-green-500/30">Pago</Badge>;
       case "pendente":
-        return <Badge className="pendente-indicator">Pendente</Badge>;
+        return <Badge className="bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">Pendente</Badge>;
       case "atrasado":
-        return <Badge className="atrasado-indicator">Atrasado</Badge>;
+        return <Badge className="bg-red-500/20 text-red-500 border border-red-500/30">Atrasado</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
