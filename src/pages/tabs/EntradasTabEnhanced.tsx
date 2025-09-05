@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,18 +15,26 @@ import {
   Check,
   Download,
   Calendar,
-  DollarSign
+  DollarSign,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import { exportToExcel, exportToPDF, formatCurrency, formatDate } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
 import { useLancamentos } from "@/hooks/useLancamentos";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
 
+type SortField = 'cliente' | 'data_emissao' | 'categoria' | 'data_vencimento' | 'valor' | 'status';
+type SortDirection = 'asc' | 'desc';
+
 const EntradasTabEnhanced = () => {
   const { toast } = useToast();
   const [receiveDialogOpen, setReceiveDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   
   // Form states
   const [formData, setFormData] = useState({
@@ -43,10 +51,77 @@ const EntradasTabEnhanced = () => {
   const { lancamentos, loading, createLancamento, markAsPaid, deleteLancamento } = useLancamentos('entrada');
   const { categorias, contas, centrosCusto } = useSupabaseData();
 
-  const totalEntradas = lancamentos.reduce((acc, entrada) => acc + entrada.valor, 0);
-  const entradasPendentes = lancamentos.filter(e => e.status === "pendente");
+  // Função para alternar ordenação
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Função para obter o ícone de ordenação
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-3 h-3 ml-1 opacity-50" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="w-3 h-3 ml-1" />
+      : <ArrowDown className="w-3 h-3 ml-1" />;
+  };
+
+  // Ordenar lançamentos
+  const sortedLancamentos = useMemo(() => {
+    if (!sortField) return lancamentos;
+    
+    const sorted = [...lancamentos].sort((a, b) => {
+      let aVal: any = a[sortField as keyof typeof a];
+      let bVal: any = b[sortField as keyof typeof b];
+      
+      // Tratamento especial para campos específicos
+      switch (sortField) {
+        case 'cliente':
+          aVal = a.descricao || '';
+          bVal = b.descricao || '';
+          break;
+        case 'data_emissao':
+          aVal = a.data_lancamento || '';
+          bVal = b.data_lancamento || '';
+          break;
+        case 'categoria':
+          const catA = categorias.find(cat => cat.id === a.categoria_id);
+          const catB = categorias.find(cat => cat.id === b.categoria_id);
+          aVal = catA?.nome || '';
+          bVal = catB?.nome || '';
+          break;
+        case 'data_vencimento':
+          aVal = a.data_vencimento || '';
+          bVal = b.data_vencimento || '';
+          break;
+        case 'valor':
+          aVal = a.valor || 0;
+          bVal = b.valor || 0;
+          break;
+        case 'status':
+          aVal = a.status || '';
+          bVal = b.status || '';
+          break;
+      }
+      
+      // Comparação
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    return sorted;
+  }, [lancamentos, sortField, sortDirection, categorias]);
+
+  const totalEntradas = sortedLancamentos.reduce((acc, entrada) => acc + entrada.valor, 0);
+  const entradasPendentes = sortedLancamentos.filter(e => e.status === "pendente");
   const totalPendentes = entradasPendentes.reduce((acc, entrada) => acc + entrada.valor, 0);
-  const entradasAtrasadas = lancamentos.filter(e => 
+  const entradasAtrasadas = sortedLancamentos.filter(e => 
     e.status === "pendente" && 
     e.data_vencimento && 
     new Date(e.data_vencimento) < new Date()
@@ -91,7 +166,7 @@ const EntradasTabEnhanced = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      const pendingIds = lancamentos
+      const pendingIds = sortedLancamentos
         .filter(e => e.status === "pendente")
         .map(e => e.id);
       setSelectedItems(pendingIds);
@@ -162,7 +237,7 @@ const EntradasTabEnhanced = () => {
 
   const handleExportExcel = () => {
     const headers = ['Data', 'Descrição', 'Valor', 'Status'];
-    const data = lancamentos.map(e => [
+    const data = sortedLancamentos.map(e => [
       formatDate(e.data_lancamento),
       e.descricao,
       formatCurrency(e.valor),
@@ -179,7 +254,7 @@ const EntradasTabEnhanced = () => {
 
   const handleExportPDF = () => {
     const headers = ['Data', 'Descrição', 'Valor', 'Status'];
-    const data = lancamentos.map(e => [
+    const data = sortedLancamentos.map(e => [
       formatDate(e.data_lancamento),
       e.descricao,
       formatCurrency(e.valor),
@@ -393,7 +468,7 @@ const EntradasTabEnhanced = () => {
             <div className="text-center py-8">Carregando...</div>
           ) : (
             <div className="overflow-x-auto">
-              {lancamentos.length === 0 ? (
+              {sortedLancamentos.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   Nenhuma entrada encontrada
                 </div>
@@ -403,21 +478,69 @@ const EntradasTabEnhanced = () => {
                     <tr className="border-b border-border">
                       <th className="w-12 px-4 py-3">
                         <Checkbox 
-                          checked={selectedItems.length === lancamentos.filter(e => e.status === "pendente").length && lancamentos.filter(e => e.status === "pendente").length > 0}
+                          checked={selectedItems.length === sortedLancamentos.filter(e => e.status === "pendente").length && sortedLancamentos.filter(e => e.status === "pendente").length > 0}
                           onCheckedChange={handleSelectAll}
                         />
                       </th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Cliente</th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Data de Emissão</th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Categoria</th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Data Vencimento</th>
-                      <th className="text-right px-4 py-3 text-sm font-medium text-muted-foreground">Valor</th>
-                      <th className="text-center px-4 py-3 text-sm font-medium text-muted-foreground">Status</th>
+                      <th 
+                        className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                        onClick={() => handleSort('cliente')}
+                      >
+                        <div className="flex items-center">
+                          Cliente
+                          {getSortIcon('cliente')}
+                        </div>
+                      </th>
+                      <th 
+                        className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                        onClick={() => handleSort('data_emissao')}
+                      >
+                        <div className="flex items-center">
+                          Data de Emissão
+                          {getSortIcon('data_emissao')}
+                        </div>
+                      </th>
+                      <th 
+                        className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                        onClick={() => handleSort('categoria')}
+                      >
+                        <div className="flex items-center">
+                          Categoria
+                          {getSortIcon('categoria')}
+                        </div>
+                      </th>
+                      <th 
+                        className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                        onClick={() => handleSort('data_vencimento')}
+                      >
+                        <div className="flex items-center">
+                          Data Vencimento
+                          {getSortIcon('data_vencimento')}
+                        </div>
+                      </th>
+                      <th 
+                        className="text-right px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                        onClick={() => handleSort('valor')}
+                      >
+                        <div className="flex items-center justify-end">
+                          Valor
+                          {getSortIcon('valor')}
+                        </div>
+                      </th>
+                      <th 
+                        className="text-center px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                        onClick={() => handleSort('status')}
+                      >
+                        <div className="flex items-center justify-center">
+                          Status
+                          {getSortIcon('status')}
+                        </div>
+                      </th>
                       <th className="text-center px-4 py-3 text-sm font-medium text-muted-foreground">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {lancamentos.map((entrada) => {
+                    {sortedLancamentos.map((entrada) => {
                       const categoria = categorias.find(cat => cat.id === entrada.categoria_id);
                       const isAtrasado = entrada.status === 'pendente' && 
                                        entrada.data_vencimento && 
