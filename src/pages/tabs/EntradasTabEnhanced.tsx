@@ -408,6 +408,7 @@ const EntradasTabEnhanced = () => {
                         />
                       </th>
                       <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Cliente</th>
+                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Data de Emissão</th>
                       <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Categoria</th>
                       <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Data Vencimento</th>
                       <th className="text-right px-4 py-3 text-sm font-medium text-muted-foreground">Valor</th>
@@ -435,6 +436,9 @@ const EntradasTabEnhanced = () => {
                             />
                           </td>
                           <td className="px-4 py-3 text-sm">{entrada.descricao}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">
+                            {formatDate(entrada.data_lancamento)}
+                          </td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">
                             {categoria?.nome || '-'}
                           </td>
