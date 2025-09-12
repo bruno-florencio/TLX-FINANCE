@@ -5,8 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   TrendingUp, 
   Plus, 
@@ -18,12 +20,17 @@ import {
   DollarSign,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  CalendarIcon
 } from "lucide-react";
 import { exportToExcel, exportToPDF, formatCurrency, formatDate } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
 import { useLancamentos } from "@/hooks/useLancamentos";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 type SortField = 'cliente' | 'data_emissao' | 'categoria' | 'data_vencimento' | 'valor' | 'status';
 type SortDirection = 'asc' | 'desc';
@@ -35,6 +42,7 @@ const EntradasTabEnhanced = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [receiveDate, setReceiveDate] = useState<Date | undefined>(new Date());
   
   // Form states
   const [formData, setFormData] = useState({
@@ -185,18 +193,43 @@ const EntradasTabEnhanced = () => {
       return;
     }
 
-    // Marcar todos os itens selecionados como pagos
+    if (!receiveDate) {
+      toast({
+        title: "Atenção",
+        description: "Selecione uma data de recebimento.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Marcar todos os itens selecionados como pagos com a data selecionada
     for (const id of selectedItems) {
-      await markAsPaid(id);
+      const { error } = await supabase
+        .from('lancamentos')
+        .update({ 
+          status: 'pago',
+          data_pagamento: format(receiveDate, 'yyyy-MM-dd')
+        })
+        .eq('id', id);
+
+      if (error) {
+        toast({
+          title: "Erro",
+          description: `Erro ao marcar lançamento como pago: ${error.message}`,
+          variant: "destructive"
+        });
+      }
     }
 
     toast({
       title: "Recebimento Registrado",
-      description: `${selectedItems.length} lançamento(s) marcado(s) como pago(s).`,
+      description: `${selectedItems.length} lançamento(s) marcado(s) como pago(s) com data ${format(receiveDate, 'dd/MM/yyyy')}.`,
     });
     
     setSelectedItems([]);
     setReceiveDialogOpen(false);
+    setReceiveDate(new Date());
+    window.location.reload(); // Recarregar para atualizar a lista
   };
 
   const handleAddLancamento = async () => {
@@ -329,15 +362,62 @@ const EntradasTabEnhanced = () => {
               <span>Lançamentos de Entrada</span>
             </div>
             <div className="flex space-x-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleReceiveSelected}
-                disabled={selectedItems.length === 0}
-              >
-                <Check className="w-4 h-4 mr-2" />
-                Receber ({selectedItems.length})
-              </Button>
+              <Dialog open={receiveDialogOpen} onOpenChange={setReceiveDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    disabled={selectedItems.length === 0}
+                  >
+                    <Check className="w-4 h-4 mr-2" />
+                    Receber ({selectedItems.length})
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Confirmar Recebimento</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Você está prestes a marcar {selectedItems.length} lançamento(s) como recebido(s).
+                    </p>
+                    <div className="space-y-2">
+                      <Label>Data de Recebimento</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !receiveDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {receiveDate ? format(receiveDate, "PPP", { locale: ptBR }) : "Selecione a data"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={receiveDate}
+                            onSelect={setReceiveDate}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                  <DialogFooter className="mt-6">
+                    <Button variant="outline" onClick={() => setReceiveDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleReceiveSelected} disabled={!receiveDate}>
+                      Confirmar Recebimento
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
 
               <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
                 <DialogTrigger asChild>
