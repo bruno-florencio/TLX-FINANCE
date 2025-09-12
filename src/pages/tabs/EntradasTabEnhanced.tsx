@@ -32,7 +32,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
-type SortField = 'cliente' | 'data_emissao' | 'categoria' | 'data_vencimento' | 'valor' | 'status';
+type SortField = 'cliente' | 'data_emissao' | 'categoria' | 'data_vencimento' | 'data_pagamento' | 'valor' | 'status';
 type SortDirection = 'asc' | 'desc';
 
 const EntradasTabEnhanced = () => {
@@ -599,6 +599,15 @@ const EntradasTabEnhanced = () => {
                         </div>
                       </th>
                       <th 
+                        className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                        onClick={() => handleSort('data_pagamento')}
+                      >
+                        <div className="flex items-center">
+                          Data Recebimento
+                          {getSortIcon('data_pagamento')}
+                        </div>
+                      </th>
+                      <th 
                         className="text-right px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                         onClick={() => handleSort('valor')}
                       >
@@ -647,6 +656,9 @@ const EntradasTabEnhanced = () => {
                           </td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">
                             {entrada.data_vencimento ? formatDate(entrada.data_vencimento) : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">
+                            {entrada.data_pagamento ? formatDate(entrada.data_pagamento) : '-'}
                           </td>
                           <td className="px-4 py-3 text-sm text-right font-medium text-entrada">
                             {formatCurrency(entrada.valor)}
