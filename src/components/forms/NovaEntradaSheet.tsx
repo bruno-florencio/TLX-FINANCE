@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Sheet, 
   SheetContent, 
@@ -44,24 +44,25 @@ interface NovaEntradaSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  editingLancamento?: any;
 }
 
-const NovaEntradaSheet = ({ open, onOpenChange, onSuccess }: NovaEntradaSheetProps) => {
+const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: NovaEntradaSheetProps) => {
   const { toast } = useToast();
   const { categorias, contas, fornecedores } = useSupabaseData();
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    descricao: '',
-    categoria_id: '',
-    conta_id: '',
-    fornecedor_id: '',
-    valor: '',
+    descricao: editingLancamento?.descricao || '',
+    categoria_id: editingLancamento?.categoria_id || '',
+    conta_id: editingLancamento?.conta_id || '',
+    fornecedor_id: editingLancamento?.fornecedor_id || '',
+    valor: editingLancamento?.valor?.toString() || '',
     numero_conta: '',
-    data_vencimento: undefined as Date | undefined,
-    data_lancamento: new Date(),
-    documento: '',
-    observacoes: ''
+    data_vencimento: editingLancamento?.data_vencimento ? new Date(editingLancamento.data_vencimento) : undefined,
+    data_lancamento: editingLancamento?.data_lancamento ? new Date(editingLancamento.data_lancamento) : new Date(),
+    documento: editingLancamento?.documento || '',
+    observacoes: editingLancamento?.observacoes || ''
   });
 
   const resetForm = () => {
@@ -79,6 +80,26 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess }: NovaEntradaSheetPro
     });
   };
 
+  // Preencher formulário quando editingLancamento mudar
+  useEffect(() => {
+    if (editingLancamento) {
+      setFormData({
+        descricao: editingLancamento.descricao || '',
+        categoria_id: editingLancamento.categoria_id || '',
+        conta_id: editingLancamento.conta_id || '',
+        fornecedor_id: editingLancamento.fornecedor_id || '',
+        valor: editingLancamento.valor?.toString() || '',
+        numero_conta: '',
+        data_vencimento: editingLancamento.data_vencimento ? new Date(editingLancamento.data_vencimento) : undefined,
+        data_lancamento: editingLancamento.data_lancamento ? new Date(editingLancamento.data_lancamento) : new Date(),
+        documento: editingLancamento.documento || '',
+        observacoes: editingLancamento.observacoes || ''
+      });
+    } else if (open) {
+      resetForm();
+    }
+  }, [editingLancamento, open]);
+
   const handleSave = async () => {
     if (!formData.descricao || !formData.valor) {
       toast({
@@ -91,29 +112,36 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess }: NovaEntradaSheetPro
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('lancamentos')
-        .insert({
-          tipo: 'entrada',
-          descricao: formData.descricao,
-          valor: parseFloat(formData.valor),
-          categoria_id: formData.categoria_id || null,
-          conta_id: formData.conta_id || null,
-          fornecedor_id: formData.fornecedor_id || null,
-          data_lancamento: format(formData.data_lancamento, 'yyyy-MM-dd'),
-          data_vencimento: formData.data_vencimento 
-            ? format(formData.data_vencimento, 'yyyy-MM-dd') 
-            : null,
-          documento: formData.documento || null,
-          observacoes: formData.observacoes || null,
-          status: 'pendente'
-        });
+      const dataToSave = {
+        tipo: 'entrada',
+        descricao: formData.descricao,
+        valor: parseFloat(formData.valor),
+        categoria_id: formData.categoria_id || null,
+        conta_id: formData.conta_id || null,
+        fornecedor_id: formData.fornecedor_id || null,
+        data_lancamento: format(formData.data_lancamento, 'yyyy-MM-dd'),
+        data_vencimento: formData.data_vencimento 
+          ? format(formData.data_vencimento, 'yyyy-MM-dd') 
+          : null,
+        documento: formData.documento || null,
+        observacoes: formData.observacoes || null,
+        status: editingLancamento?.status || 'pendente'
+      };
+
+      const { error } = editingLancamento
+        ? await supabase
+            .from('lancamentos')
+            .update(dataToSave)
+            .eq('id', editingLancamento.id)
+        : await supabase
+            .from('lancamentos')
+            .insert(dataToSave);
 
       if (error) throw error;
 
       toast({
-        title: "✓ Conta registrada com sucesso",
-        description: "Entrada adicionada ao sistema.",
+        title: editingLancamento ? "✓ Conta atualizada com sucesso" : "✓ Conta registrada com sucesso",
+        description: editingLancamento ? "Entrada atualizada no sistema." : "Entrada adicionada ao sistema.",
       });
 
       resetForm();
@@ -144,7 +172,9 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess }: NovaEntradaSheetPro
           {/* Conteúdo Principal */}
           <div className="flex-1 p-6 space-y-6">
             <SheetHeader>
-              <SheetTitle className="text-2xl font-bold">Incluir Conta a Receber</SheetTitle>
+              <SheetTitle className="text-2xl font-bold">
+                {editingLancamento ? 'Editar Conta a Receber' : 'Incluir Conta a Receber'}
+              </SheetTitle>
             </SheetHeader>
 
             {/* Dados Principais */}

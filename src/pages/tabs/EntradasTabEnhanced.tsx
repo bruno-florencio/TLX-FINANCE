@@ -42,6 +42,7 @@ const EntradasTabEnhanced = () => {
   const { toast } = useToast();
   const [receiveDialogOpen, setReceiveDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editingLancamento, setEditingLancamento] = useState<any>(null);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -251,10 +252,8 @@ const EntradasTabEnhanced = () => {
   };
 
   const handleEdit = (entrada: any) => {
-    toast({
-      title: "Editar Entrada",
-      description: `Funcionalidade de edição para: ${entrada.descricao}`,
-    });
+    setEditingLancamento(entrada);
+    setAddDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -493,15 +492,22 @@ const EntradasTabEnhanced = () => {
                 </DialogContent>
               </Dialog>
 
-              <Button size="sm" onClick={() => setAddDialogOpen(true)}>
+              <Button size="sm" onClick={() => {
+                setEditingLancamento(null);
+                setAddDialogOpen(true);
+              }}>
                 <Plus className="w-4 h-4 mr-2" />
                 Nova Entrada
               </Button>
 
               <NovaEntradaSheet 
                 open={addDialogOpen} 
-                onOpenChange={setAddDialogOpen}
+                onOpenChange={(open) => {
+                  setAddDialogOpen(open);
+                  if (!open) setEditingLancamento(null);
+                }}
                 onSuccess={refetch}
+                editingLancamento={editingLancamento}
               />
 
               <Button variant="outline" size="sm" onClick={handleExportExcel}>
