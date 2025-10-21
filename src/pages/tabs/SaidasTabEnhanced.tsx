@@ -20,27 +20,17 @@ import { exportToExcel, exportToPDF, formatCurrency, formatDate } from "@/utils/
 import { useToast } from "@/hooks/use-toast";
 import { useLancamentos } from "@/hooks/useLancamentos";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
+import NovaContaPagarSheet from "@/components/forms/NovaContaPagarSheet";
 
 const SaidasTabEnhanced = () => {
   const { toast } = useToast();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editingLancamento, setEditingLancamento] = useState<any>(null);
   
-  // Form states
-  const [formData, setFormData] = useState({
-    descricao: '',
-    valor: '',
-    categoria_id: '',
-    conta_id: '',
-    centro_custo_id: '',
-    fornecedor_id: '',
-    data_lancamento: new Date().toISOString().split('T')[0],
-    observacoes: ''
-  });
-
   // Hooks para dados
-  const { lancamentos, loading, createLancamento, markAsPaid, deleteLancamento } = useLancamentos('saida');
-  const { categorias, contas, centrosCusto, fornecedores } = useSupabaseData();
+  const { lancamentos, loading, refetch, markAsPaid, deleteLancamento } = useLancamentos('saida');
+  const { categorias } = useSupabaseData();
 
   const totalSaidas = lancamentos.reduce((acc, saida) => acc + saida.valor, 0);
   const saidasPendentes = lancamentos.filter(s => s.status === "pendente").length;
@@ -63,52 +53,12 @@ const SaidasTabEnhanced = () => {
   };
 
   const handleEdit = (saida: any) => {
-    toast({
-      title: "Editar Saída",
-      description: `Funcionalidade de edição para: ${saida.descricao}`,
-    });
+    setEditingLancamento(saida);
+    setAddDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
     await deleteLancamento(id);
-  };
-
-  const handleAddLancamento = async () => {
-    if (!formData.descricao || !formData.valor) {
-      toast({
-        title: "Erro",
-        description: "Preencha os campos obrigatórios.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const newLancamento = {
-      tipo: 'saida' as const,
-      descricao: formData.descricao,
-      valor: parseFloat(formData.valor),
-      data_lancamento: formData.data_lancamento,
-      categoria_id: formData.categoria_id || undefined,
-      conta_id: formData.conta_id || undefined,
-      centro_custo_id: formData.centro_custo_id || undefined,
-      fornecedor_id: formData.fornecedor_id || undefined,
-      observacoes: formData.observacoes || undefined,
-    };
-
-    const result = await createLancamento(newLancamento);
-    if (result) {
-      setAddDialogOpen(false);
-      setFormData({
-        descricao: '',
-        valor: '',
-        categoria_id: '',
-        conta_id: '',
-        centro_custo_id: '',
-        fornecedor_id: '',
-        data_lancamento: new Date().toISOString().split('T')[0],
-        observacoes: ''
-      });
-    }
   };
 
   const handleExportExcel = () => {
@@ -256,135 +206,23 @@ const SaidasTabEnhanced = () => {
                 </DialogContent>
               </Dialog>
 
-              <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nova Saída
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Nova Saída</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="descricao">Descrição</Label>
-                        <Input 
-                          id="descricao" 
-                          value={formData.descricao}
-                          onChange={(e) => setFormData(prev => ({ ...prev, descricao: e.target.value }))}
-                          placeholder="Descrição da saída" 
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="valor">Valor</Label>
-                        <Input 
-                          id="valor" 
-                          type="number" 
-                          step="0.01"
-                          value={formData.valor}
-                          onChange={(e) => setFormData(prev => ({ ...prev, valor: e.target.value }))}
-                          placeholder="0,00" 
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="categoria">Categoria</Label>
-                        <Select value={formData.categoria_id} onValueChange={(value) => setFormData(prev => ({ ...prev, categoria_id: value }))}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecionar categoria" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categorias.filter(cat => cat.tipo === 'saida').map(categoria => (
-                              <SelectItem key={categoria.id} value={categoria.id}>
-                                {categoria.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="centroCusto">Centro de Custo</Label>
-                        <Select value={formData.centro_custo_id} onValueChange={(value) => setFormData(prev => ({ ...prev, centro_custo_id: value }))}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecionar centro de custo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {centrosCusto.map(centro => (
-                              <SelectItem key={centro.id} value={centro.id}>
-                                {centro.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="fornecedor">Fornecedor</Label>
-                        <Select value={formData.fornecedor_id} onValueChange={(value) => setFormData(prev => ({ ...prev, fornecedor_id: value }))}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecionar fornecedor" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {fornecedores.map(fornecedor => (
-                              <SelectItem key={fornecedor.id} value={fornecedor.id}>
-                                {fornecedor.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="conta">Conta</Label>
-                        <Select value={formData.conta_id} onValueChange={(value) => setFormData(prev => ({ ...prev, conta_id: value }))}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecionar conta" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {contas.map(conta => (
-                              <SelectItem key={conta.id} value={conta.id}>
-                                {conta.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="data">Data</Label>
-                        <Input 
-                          id="data" 
-                          type="date" 
-                          value={formData.data_lancamento}
-                          onChange={(e) => setFormData(prev => ({ ...prev, data_lancamento: e.target.value }))}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="observacoes">Observações</Label>
-                        <Input 
-                          id="observacoes" 
-                          value={formData.observacoes}
-                          onChange={(e) => setFormData(prev => ({ ...prev, observacoes: e.target.value }))}
-                          placeholder="Observações (opcional)" 
-                        />
-                      </div>
-                    </div>
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
-                        Cancelar
-                      </Button>
-                      <Button onClick={handleAddLancamento}>
-                        Salvar Saída
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Button size="sm" onClick={() => {
+                setEditingLancamento(null);
+                setAddDialogOpen(true);
+              }}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nova Saída
+              </Button>
+
+              <NovaContaPagarSheet 
+                open={addDialogOpen} 
+                onOpenChange={(open) => {
+                  setAddDialogOpen(open);
+                  if (!open) setEditingLancamento(null);
+                }}
+                onSuccess={refetch}
+                editingLancamento={editingLancamento}
+              />
 
               <Button variant="outline" size="sm" onClick={handleExportExcel}>
                 <Download className="w-4 h-4 mr-2" />
