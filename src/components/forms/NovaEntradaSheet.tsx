@@ -54,9 +54,9 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: 
 
   const [formData, setFormData] = useState({
     descricao: editingLancamento?.descricao || '',
-    categoria_id: editingLancamento?.categoria_id || '',
-    conta_id: editingLancamento?.conta_id || '',
-    fornecedor_id: editingLancamento?.fornecedor_id || '',
+    categoria_id: editingLancamento?.categoria_id || undefined,
+    conta_id: editingLancamento?.conta_id || undefined,
+    fornecedor_id: editingLancamento?.fornecedor_id || undefined,
     valor: editingLancamento?.valor?.toString() || '',
     numero_conta: '',
     data_vencimento: editingLancamento?.data_vencimento ? new Date(editingLancamento.data_vencimento) : undefined,
@@ -68,9 +68,9 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: 
   const resetForm = () => {
     setFormData({
       descricao: '',
-      categoria_id: '',
-      conta_id: '',
-      fornecedor_id: '',
+      categoria_id: undefined,
+      conta_id: undefined,
+      fornecedor_id: undefined,
       valor: '',
       numero_conta: '',
       data_vencimento: undefined,
@@ -85,9 +85,9 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: 
     if (editingLancamento) {
       setFormData({
         descricao: editingLancamento.descricao || '',
-        categoria_id: editingLancamento.categoria_id || '',
-        conta_id: editingLancamento.conta_id || '',
-        fornecedor_id: editingLancamento.fornecedor_id || '',
+        categoria_id: editingLancamento.categoria_id || undefined,
+        conta_id: editingLancamento.conta_id || undefined,
+        fornecedor_id: editingLancamento.fornecedor_id || undefined,
         valor: editingLancamento.valor?.toString() || '',
         numero_conta: '',
         data_vencimento: editingLancamento.data_vencimento ? new Date(editingLancamento.data_vencimento) : undefined,
