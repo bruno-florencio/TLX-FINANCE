@@ -357,7 +357,7 @@ const EntradasTabEnhanced = () => {
     exportToPDF({
       headers,
       data,
-      title: 'Relatório de Entradas - H MOLINA',
+      title: 'Relatório de Entradas - TECHLABX',
       filename: 'entradas_financeiras'
     });
   };
@@ -370,7 +370,7 @@ const EntradasTabEnhanced = () => {
           Gestão de Entradas
         </h1>
         <p className="text-muted-foreground">
-          Controle completo de recebimentos do sistema H MOLINA
+          Controle completo de recebimentos do sistema TECHLABX
         </p>
       </div>
 
