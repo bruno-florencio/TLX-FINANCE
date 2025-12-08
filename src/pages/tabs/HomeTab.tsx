@@ -247,7 +247,7 @@ const HomeTab = () => {
           Dashboard Financeiro
         </h1>
         <p className="text-muted-foreground">
-          Visão geral do sistema TECHLABX - {new Date().toLocaleDateString("pt-BR", { 
+          Visão geral do sistema H MOLINA - {new Date().toLocaleDateString("pt-BR", { 
             weekday: 'long', 
             year: 'numeric', 
             month: 'long', 

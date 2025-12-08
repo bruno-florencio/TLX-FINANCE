@@ -142,7 +142,7 @@ const ContasTab = () => {
     exportToPDF({
       headers,
       data,
-      title: 'Extratos Bancários - TECHLABX',
+      title: 'Extratos Bancários - H MOLINA',
       filename: 'extratos_bancarios'
     });
   };
@@ -155,7 +155,7 @@ const ContasTab = () => {
           Contas e Extratos
         </h1>
         <p className="text-muted-foreground">
-          Gestão e conciliação bancária do sistema TECHLABX
+          Gestão e conciliação bancária do sistema H MOLINA
         </p>
       </div>
 

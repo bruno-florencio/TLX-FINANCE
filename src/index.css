@@ -4,13 +4,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* TECHLABX Design System - All colors must be HSL */
+/* H MOLINA Design System - All colors must be HSL */
 
 @layer base {
   :root {
-    /* TECHLABX Brand Colors */
-    --techlabx-green: 120 96% 40%; /* RGB(4, 201, 4) */
-    --techlabx-light-blue: 207 65% 42%; /* RGB(38, 114, 176) */
+    /* H MOLINA Brand Colors */
+    --h-molina-green: 120 96% 40%; /* RGB(4, 201, 4) */
+    --h-molina-light-blue: 207 65% 42%; /* RGB(38, 114, 176) */
     --h-molina-medium-blue: 208 92% 30%; /* RGB(6, 84, 148) */
     --h-molina-dark-blue: 208 97% 24%; /* RGB(2, 67, 120) */
     --h-molina-dark-bg: 0 1% 16%; /* RGB(40, 40, 41) */
