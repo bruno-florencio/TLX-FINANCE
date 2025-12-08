@@ -39,7 +39,7 @@ const Header = ({ currentTab, onTabChange }: HeaderProps) => {
               <span className="text-2xl font-american-captain text-primary-foreground">T</span>
             </div>
             <div>
-              <h1 className="text-2xl font-american-captain text-primary">TechLabX</h1>
+              <h1 className="text-2xl font-american-captain text-primary uppercase">TECHLABX</h1>
               <p className="text-sm text-muted-foreground">Sistema Financeiro</p>
             </div>
           </div>
