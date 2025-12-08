@@ -36,10 +36,10 @@ const Header = ({ currentTab, onTabChange }: HeaderProps) => {
           {/* Logo */}
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-2xl font-american-captain text-primary-foreground">H</span>
+              <span className="text-2xl font-american-captain text-primary-foreground">T</span>
             </div>
             <div>
-              <h1 className="text-2xl font-american-captain text-primary">H MOLINA</h1>
+              <h1 className="text-2xl font-american-captain text-primary">TechLabX</h1>
               <p className="text-sm text-muted-foreground">Sistema Financeiro</p>
             </div>
           </div>
