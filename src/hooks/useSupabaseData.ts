@@ -13,8 +13,10 @@ export interface Categoria {
 export interface Conta {
   id: string;
   nome: string;
-  tipo: 'corrente' | 'poupanca' | 'investimento' | 'cartao';
-  banco?: string;
+  tipo: string;
+  banco?: string | null;
+  agencia?: string | null;
+  numero_conta?: string | null;
   saldo_inicial: number;
   ativo: boolean;
 }
