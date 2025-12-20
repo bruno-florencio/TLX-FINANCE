@@ -8,7 +8,6 @@ import {
   Settings,
   Menu,
   X,
-  Banknote,
   Receipt
 } from "lucide-react";
 
@@ -25,7 +24,6 @@ const Header = ({ currentTab, onTabChange }: HeaderProps) => {
     { id: "entradas", label: "Entradas", icon: TrendingUp },
     { id: "saidas", label: "Saídas", icon: TrendingDown },
     { id: "extrato", label: "Extrato", icon: Receipt },
-    { id: "contas", label: "Contas", icon: Banknote },
     { id: "relatorios", label: "Relatórios", icon: FileText },
     { id: "configuracao", label: "Configuração", icon: Settings },
   ];
