@@ -4,7 +4,6 @@ import HomeTab from "./tabs/HomeTab";
 import EntradasTab from "./tabs/EntradasTabEnhanced";
 import SaidasTab from "./tabs/SaidasTabEnhanced";
 import ExtratoTab from "./tabs/ExtratoTab";
-import ContasTab from "./tabs/ContasTab";
 import RelatoriosTab from "./tabs/RelatoriosTab";
 import ConfiguracaoTab from "./tabs/ConfiguracaoTab";
 
@@ -21,8 +20,6 @@ const Index = () => {
         return <SaidasTab />;
       case "extrato":
         return <ExtratoTab />;
-      case "contas":
-        return <ContasTab />;
       case "relatorios":
         return <RelatoriosTab />;
       case "configuracao":
