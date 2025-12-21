@@ -6,8 +6,9 @@ export interface Categoria {
   id: string;
   nome: string;
   tipo: 'entrada' | 'saida';
-  descricao?: string;
-  ativo: boolean;
+  cor?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Conta {
@@ -17,25 +18,36 @@ export interface Conta {
   banco?: string | null;
   agencia?: string | null;
   numero_conta?: string | null;
+  bandeira?: string | null;
+  limite?: number;
   saldo_inicial: number;
+  saldo_atual?: number;
+  cor?: string | null;
   ativo: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface CentroCusto {
   id: string;
   nome: string;
-  descricao?: string;
+  descricao?: string | null;
   ativo: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Fornecedor {
   id: string;
   nome: string;
-  documento?: string;
-  email?: string;
-  telefone?: string;
-  endereco?: string;
+  documento?: string | null;
+  tipo_documento?: string | null;
+  telefone?: string | null;
+  email?: string | null;
+  endereco?: string | null;
   ativo: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export const useSupabaseData = () => {
@@ -52,7 +64,7 @@ export const useSupabaseData = () => {
       
       // Buscar todas as tabelas em paralelo
       const [categoriasRes, contasRes, centrosCustoRes, fornecedoresRes] = await Promise.all([
-        supabase.from('categorias').select('*').eq('ativo', true).order('nome'),
+        supabase.from('categorias').select('*').order('nome'),
         supabase.from('contas').select('*').eq('ativo', true).order('nome'),
         supabase.from('centros_custo').select('*').eq('ativo', true).order('nome'),
         supabase.from('fornecedores').select('*').eq('ativo', true).order('nome')
@@ -61,25 +73,25 @@ export const useSupabaseData = () => {
       if (categoriasRes.error) {
         console.error('Erro ao buscar categorias:', categoriasRes.error);
       } else {
-        setCategorias((categoriasRes.data || []) as Categoria[]);
+        setCategorias((categoriasRes.data || []) as unknown as Categoria[]);
       }
 
       if (contasRes.error) {
         console.error('Erro ao buscar contas:', contasRes.error);
       } else {
-        setContas((contasRes.data || []) as Conta[]);
+        setContas((contasRes.data || []) as unknown as Conta[]);
       }
 
       if (centrosCustoRes.error) {
         console.error('Erro ao buscar centros de custo:', centrosCustoRes.error);
       } else {
-        setCentrosCusto(centrosCustoRes.data || []);
+        setCentrosCusto((centrosCustoRes.data || []) as unknown as CentroCusto[]);
       }
 
       if (fornecedoresRes.error) {
         console.error('Erro ao buscar fornecedores:', fornecedoresRes.error);
       } else {
-        setFornecedores(fornecedoresRes.data || []);
+        setFornecedores((fornecedoresRes.data || []) as unknown as Fornecedor[]);
       }
 
     } catch (error) {

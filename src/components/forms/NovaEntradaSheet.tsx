@@ -58,10 +58,8 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: 
     conta_id: editingLancamento?.conta_id || undefined,
     fornecedor_id: editingLancamento?.fornecedor_id || undefined,
     valor: editingLancamento?.valor?.toString() || '',
-    numero_conta: '',
-    data_vencimento: editingLancamento?.data_vencimento ? new Date(editingLancamento.data_vencimento) : undefined,
-    data_lancamento: editingLancamento?.data_lancamento ? new Date(editingLancamento.data_lancamento) : new Date(),
-    documento: editingLancamento?.documento || '',
+    numero_documento: editingLancamento?.numero_documento || '',
+    data_vencimento: editingLancamento?.data_vencimento ? new Date(editingLancamento.data_vencimento) : new Date(),
     observacoes: editingLancamento?.observacoes || ''
   });
 
@@ -72,10 +70,8 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: 
       conta_id: undefined,
       fornecedor_id: undefined,
       valor: '',
-      numero_conta: '',
-      data_vencimento: undefined,
-      data_lancamento: new Date(),
-      documento: '',
+      numero_documento: '',
+      data_vencimento: new Date(),
       observacoes: ''
     });
   };
@@ -89,10 +85,8 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: 
         conta_id: editingLancamento.conta_id || undefined,
         fornecedor_id: editingLancamento.fornecedor_id || undefined,
         valor: editingLancamento.valor?.toString() || '',
-        numero_conta: '',
-        data_vencimento: editingLancamento.data_vencimento ? new Date(editingLancamento.data_vencimento) : undefined,
-        data_lancamento: editingLancamento.data_lancamento ? new Date(editingLancamento.data_lancamento) : new Date(),
-        documento: editingLancamento.documento || '',
+        numero_documento: editingLancamento.numero_documento || '',
+        data_vencimento: editingLancamento.data_vencimento ? new Date(editingLancamento.data_vencimento) : new Date(),
         observacoes: editingLancamento.observacoes || ''
       });
     } else if (open) {
@@ -119,11 +113,8 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: 
         categoria_id: formData.categoria_id || null,
         conta_id: formData.conta_id || null,
         fornecedor_id: formData.fornecedor_id || null,
-        data_lancamento: format(formData.data_lancamento, 'yyyy-MM-dd'),
-        data_vencimento: formData.data_vencimento 
-          ? format(formData.data_vencimento, 'yyyy-MM-dd') 
-          : null,
-        documento: formData.documento || null,
+        data_vencimento: format(formData.data_vencimento, 'yyyy-MM-dd'),
+        numero_documento: formData.numero_documento || null,
         observacoes: formData.observacoes || null,
         status: editingLancamento?.status || 'pendente'
       };
@@ -283,20 +274,17 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: 
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !formData.data_lancamento && "text-muted-foreground"
-                        )}
+                        className="w-full justify-start text-left font-normal"
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {format(formData.data_lancamento, "PPP", { locale: ptBR })}
+                        {format(formData.data_vencimento, "PPP", { locale: ptBR })}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={formData.data_lancamento}
-                        onSelect={(date) => date && setFormData(prev => ({ ...prev, data_lancamento: date }))}
+                        selected={formData.data_vencimento}
+                        onSelect={(date) => date && setFormData(prev => ({ ...prev, data_vencimento: date }))}
                         initialFocus
                       />
                     </PopoverContent>
@@ -316,12 +304,12 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: 
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="numero_conta">Número da Conta</Label>
+                  <Label htmlFor="numero_documento">Número do Documento</Label>
                   <Input
-                    id="numero_conta"
+                    id="numero_documento"
                     placeholder="001/001"
-                    value={formData.numero_conta}
-                    onChange={(e) => setFormData(prev => ({ ...prev, numero_conta: e.target.value }))}
+                    value={formData.numero_documento}
+                    onChange={(e) => setFormData(prev => ({ ...prev, numero_documento: e.target.value }))}
                   />
                 </div>
               </div>
@@ -336,8 +324,8 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: 
                   <Label htmlFor="nota_fiscal">Nota Fiscal</Label>
                   <Input
                     id="nota_fiscal"
-                    value={formData.documento}
-                    onChange={(e) => setFormData(prev => ({ ...prev, documento: e.target.value }))}
+                    value={formData.numero_documento}
+                    onChange={(e) => setFormData(prev => ({ ...prev, numero_documento: e.target.value }))}
                     placeholder="Número da NF"
                   />
                 </div>
@@ -351,14 +339,14 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: 
                         className="w-full justify-start text-left font-normal"
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {format(formData.data_lancamento, "PPP", { locale: ptBR })}
+                        {format(formData.data_vencimento, "PPP", { locale: ptBR })}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={formData.data_lancamento}
-                        onSelect={(date) => date && setFormData(prev => ({ ...prev, data_lancamento: date }))}
+                        selected={formData.data_vencimento}
+                        onSelect={(date) => date && setFormData(prev => ({ ...prev, data_vencimento: date }))}
                         initialFocus
                       />
                     </PopoverContent>

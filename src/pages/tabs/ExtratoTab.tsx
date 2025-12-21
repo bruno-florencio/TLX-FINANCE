@@ -72,15 +72,17 @@ interface Lancamento {
   descricao: string;
   categoria_id: string | null;
   valor: number;
-  data_lancamento: string;
-  data_vencimento: string | null;
+  data_vencimento: string;
   data_pagamento: string | null;
   status: string;
   conta_id: string | null;
   fornecedor_id: string | null;
   centro_custo_id: string | null;
+  numero_documento: string | null;
   observacoes: string | null;
-  documento: string | null;
+  recorrente: boolean;
+  parcela_atual: number | null;
+  total_parcelas: number | null;
 }
 
 interface Categoria {
@@ -115,15 +117,15 @@ const ExtratoTab = () => {
   const fetchData = async () => {
     try {
       const [lancamentosRes, categoriasRes] = await Promise.all([
-        supabase.from("lancamentos").select("*").order("data_lancamento", { ascending: false }),
-        supabase.from("categorias").select("*").eq("ativo", true),
+        supabase.from("lancamentos").select("*").order("data_vencimento", { ascending: false }),
+        supabase.from("categorias").select("*"),
       ]);
 
       if (lancamentosRes.error) throw lancamentosRes.error;
       if (categoriasRes.error) throw categoriasRes.error;
 
-      setLancamentos(lancamentosRes.data || []);
-      setCategorias(categoriasRes.data || []);
+      setLancamentos((lancamentosRes.data || []) as unknown as Lancamento[]);
+      setCategorias((categoriasRes.data || []) as unknown as Categoria[]);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
       toast.error("Erro ao carregar dados do extrato");
@@ -146,7 +148,7 @@ const ExtratoTab = () => {
   // Filter lancamentos
   const filteredLancamentos = useMemo(() => {
     return lancamentos.filter((l) => {
-      const lancamentoDate = parseISO(l.data_lancamento);
+      const lancamentoDate = parseISO(l.data_vencimento);
       const withinDateRange = isWithinInterval(lancamentoDate, {
         start: dataInicial,
         end: dataFinal,
@@ -167,7 +169,7 @@ const ExtratoTab = () => {
   const lancamentosComSaldo = useMemo(() => {
     // Sort by date ascending for balance calculation
     const sortedAsc = [...filteredLancamentos].sort(
-      (a, b) => new Date(a.data_lancamento).getTime() - new Date(b.data_lancamento).getTime()
+      (a, b) => new Date(a.data_vencimento).getTime() - new Date(b.data_vencimento).getTime()
     );
 
     let saldoAcumulado = 0;
@@ -293,7 +295,7 @@ const ExtratoTab = () => {
   const groupedByDate = useMemo(() => {
     const groups: { [key: string]: typeof lancamentosComSaldo } = {};
     lancamentosComSaldo.forEach((l) => {
-      const date = l.data_lancamento;
+      const date = l.data_vencimento;
       if (!groups[date]) {
         groups[date] = [];
       }
@@ -552,7 +554,7 @@ const ExtratoTab = () => {
                     const isPendente = lancamento.status === "pendente";
                     const showDateSeparator =
                       index === 0 ||
-                      lancamento.data_lancamento !== lancamentosComSaldo[index - 1].data_lancamento;
+                      lancamento.data_vencimento !== lancamentosComSaldo[index - 1].data_vencimento;
 
                     return (
                       <>
@@ -562,7 +564,7 @@ const ExtratoTab = () => {
                               colSpan={8}
                               className="py-2 px-4 text-sm font-semibold text-primary"
                             >
-                              📅 {format(parseISO(lancamento.data_lancamento), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                              📅 {format(parseISO(lancamento.data_vencimento), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                             </TableCell>
                           </TableRow>
                         )}
@@ -576,16 +578,16 @@ const ExtratoTab = () => {
                           )}
                         >
                           <TableCell className="font-medium text-muted-foreground">
-                            {formatDate(lancamento.data_lancamento)}
+                            {formatDate(lancamento.data_vencimento)}
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col">
                               <span className={cn("font-medium", isPendente && "italic")}>
                                 {lancamento.descricao}
                               </span>
-                              {lancamento.documento && (
+                              {lancamento.numero_documento && (
                                 <span className="text-xs text-muted-foreground">
-                                  Doc: {lancamento.documento}
+                                  Doc: {lancamento.numero_documento}
                                 </span>
                               )}
                             </div>
