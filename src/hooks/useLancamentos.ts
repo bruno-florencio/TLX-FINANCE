@@ -7,16 +7,18 @@ export interface Lancamento {
   tipo: 'entrada' | 'saida';
   descricao: string;
   valor: number;
-  data_lancamento: string;
-  data_vencimento?: string;
-  data_pagamento?: string;
-  status: 'pendente' | 'pago' | 'cancelado';
-  categoria_id?: string;
-  conta_id?: string;
-  centro_custo_id?: string;
-  fornecedor_id?: string;
-  observacoes?: string;
-  documento?: string;
+  data_vencimento: string;
+  data_pagamento?: string | null;
+  status: 'pendente' | 'pago' | 'cancelado' | 'atrasado';
+  categoria_id?: string | null;
+  conta_id?: string | null;
+  centro_custo_id?: string | null;
+  fornecedor_id?: string | null;
+  numero_documento?: string | null;
+  observacoes?: string | null;
+  recorrente?: boolean;
+  parcela_atual?: number | null;
+  total_parcelas?: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -25,13 +27,16 @@ export interface NewLancamento {
   tipo: 'entrada' | 'saida';
   descricao: string;
   valor: number;
-  data_lancamento: string;
-  data_vencimento?: string;
-  categoria_id?: string;
-  conta_id?: string;
-  centro_custo_id?: string;
-  fornecedor_id?: string;
-  observacoes?: string;
+  data_vencimento: string;
+  categoria_id?: string | null;
+  conta_id?: string | null;
+  centro_custo_id?: string | null;
+  fornecedor_id?: string | null;
+  numero_documento?: string | null;
+  observacoes?: string | null;
+  recorrente?: boolean;
+  parcela_atual?: number | null;
+  total_parcelas?: number | null;
 }
 
 export const useLancamentos = (tipo?: 'entrada' | 'saida') => {
@@ -48,7 +53,7 @@ export const useLancamentos = (tipo?: 'entrada' | 'saida') => {
         query = query.eq('tipo', tipo);
       }
       
-      const { data, error } = await query.order('data_lancamento', { ascending: false });
+      const { data, error } = await query.order('data_vencimento', { ascending: false });
 
       if (error) {
         console.error('Erro ao buscar lançamentos:', error);
@@ -60,7 +65,7 @@ export const useLancamentos = (tipo?: 'entrada' | 'saida') => {
         return;
       }
 
-      setLancamentos((data || []) as Lancamento[]);
+      setLancamentos((data || []) as unknown as Lancamento[]);
     } catch (error) {
       console.error('Erro ao buscar lançamentos:', error);
       toast({
@@ -77,7 +82,7 @@ export const useLancamentos = (tipo?: 'entrada' | 'saida') => {
     try {
       const { data, error } = await supabase
         .from('lancamentos')
-        .insert([newLancamento])
+        .insert([newLancamento as any])
         .select()
         .single();
 
@@ -114,7 +119,7 @@ export const useLancamentos = (tipo?: 'entrada' | 'saida') => {
     try {
       const { error } = await supabase
         .from('lancamentos')
-        .update(updates)
+        .update(updates as any)
         .eq('id', id);
 
       if (error) {

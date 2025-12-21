@@ -89,8 +89,8 @@ const ConfiguracaoTab = () => {
       }
 
       const { error } = await supabase
-        .from(tableName)
-        .update({ ativo: false })
+        .from(tableName as any)
+        .update({ ativo: false } as any)
         .eq("id", itemToDelete.id);
 
       if (error) throw error;
@@ -271,7 +271,7 @@ const ConfiguracaoTab = () => {
                           variant="ghost" 
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete("Conta", conta.id, conta.nome)}
+                          onClick={() => handleDeleteClick("Conta", conta.id, conta.nome)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -324,7 +324,7 @@ const ConfiguracaoTab = () => {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => handleDelete("Fornecedor", fornecedor.id, fornecedor.nome)}
+                    onClick={() => handleDeleteClick("Fornecedor", fornecedor.id, fornecedor.nome)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -372,7 +372,7 @@ const ConfiguracaoTab = () => {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => handleDelete("Cliente", cliente.id, cliente.nome)}
+                    onClick={() => handleDeleteClick("Cliente", cliente.id, cliente.nome)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -419,7 +419,7 @@ const ConfiguracaoTab = () => {
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => handleDelete("Categoria", categoria.id, categoria.nome)}
+                      onClick={() => handleDeleteClick("Categoria", categoria.id, categoria.nome)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -467,7 +467,7 @@ const ConfiguracaoTab = () => {
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => handleDelete("Categoria", categoria.id, categoria.nome)}
+                      onClick={() => handleDeleteClick("Categoria", categoria.id, categoria.nome)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -523,7 +523,7 @@ const ConfiguracaoTab = () => {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => handleDelete("Centro de Custo", centro.id, centro.nome)}
+                    onClick={() => handleDeleteClick("Centro de Custo", centro.id, centro.nome)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>

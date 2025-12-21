@@ -55,7 +55,7 @@ const HomeTab = () => {
         supabase
           .from("lancamentos")
           .select("*")
-          .order("data_lancamento", { ascending: true }),
+          .order("data_vencimento", { ascending: true }),
         supabase
           .from("categorias")
           .select("*"),
@@ -90,7 +90,7 @@ const HomeTab = () => {
     
     // Filtra lançamentos do mês atual
     const lancamentosMes = lancamentos.filter((l) => {
-      const dataLancamento = new Date(l.data_lancamento);
+      const dataLancamento = new Date(l.data_vencimento);
       return dataLancamento >= inicioMes && dataLancamento <= fimMes;
     });
 
@@ -147,14 +147,14 @@ const HomeTab = () => {
       
       const entradasDia = lancamentos
         .filter((l) => {
-          const dataLancamento = format(parseISO(l.data_lancamento), "yyyy-MM-dd");
+          const dataLancamento = format(parseISO(l.data_vencimento), "yyyy-MM-dd");
           return dataLancamento === diaFormatado && l.tipo === "entrada";
         })
         .reduce((sum, l) => sum + Number(l.valor), 0);
 
       const saidasDia = lancamentos
         .filter((l) => {
-          const dataLancamento = format(parseISO(l.data_lancamento), "yyyy-MM-dd");
+          const dataLancamento = format(parseISO(l.data_vencimento), "yyyy-MM-dd");
           return dataLancamento === diaFormatado && l.tipo === "saida";
         })
         .reduce((sum, l) => sum + Number(l.valor), 0);

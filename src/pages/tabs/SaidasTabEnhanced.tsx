@@ -138,15 +138,15 @@ const SaidasTabEnhanced = () => {
       filtered = filtered.filter(l => l.valor <= max);
     }
 
-    // Filtro por data de emissão
+    // Filtro por data de emissão (usando data_vencimento)
     if (filters.dataEmissaoInicio) {
       filtered = filtered.filter(l => 
-        l.data_lancamento && new Date(l.data_lancamento) >= filters.dataEmissaoInicio
+        l.data_vencimento && new Date(l.data_vencimento) >= filters.dataEmissaoInicio
       );
     }
     if (filters.dataEmissaoFim) {
       filtered = filtered.filter(l => 
-        l.data_lancamento && new Date(l.data_lancamento) <= filters.dataEmissaoFim
+        l.data_vencimento && new Date(l.data_vencimento) <= filters.dataEmissaoFim
       );
     }
 
@@ -192,8 +192,8 @@ const SaidasTabEnhanced = () => {
           bVal = b.descricao || '';
           break;
         case 'data_emissao':
-          aVal = a.data_lancamento || '';
-          bVal = b.data_lancamento || '';
+          aVal = a.data_vencimento || '';
+          bVal = b.data_vencimento || '';
           break;
         case 'categoria':
           const catA = categorias.find(cat => cat.id === a.categoria_id);
@@ -331,7 +331,7 @@ const SaidasTabEnhanced = () => {
   const handleExportExcel = () => {
     const headers = ['Data', 'Descrição', 'Valor', 'Status'];
     const data = sortedLancamentos.map(s => [
-      formatDate(s.data_lancamento),
+      formatDate(s.data_vencimento),
       s.descricao,
       formatCurrency(s.valor),
       s.status
@@ -348,7 +348,7 @@ const SaidasTabEnhanced = () => {
   const handleExportPDF = () => {
     const headers = ['Data', 'Descrição', 'Valor', 'Status'];
     const data = sortedLancamentos.map(s => [
-      formatDate(s.data_lancamento),
+      formatDate(s.data_vencimento),
       s.descricao,
       formatCurrency(s.valor),
       s.status
@@ -892,7 +892,7 @@ const SaidasTabEnhanced = () => {
                           </td>
                           <td className="px-4 py-3 text-sm">{saida.descricao}</td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">
-                            {formatDate(saida.data_lancamento)}
+                            {formatDate(saida.data_vencimento)}
                           </td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">
                             {categoria?.nome || '-'}
