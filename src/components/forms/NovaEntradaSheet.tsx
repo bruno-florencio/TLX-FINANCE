@@ -261,7 +261,7 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: 
                       <Calendar
                         mode="single"
                         selected={formData.data_vencimento}
-                        onSelect={(date) => setFormData(prev => ({ ...prev, data_vencimento: date }))}
+                        onSelect={(date) => date && setFormData(prev => ({ ...prev, data_vencimento: date }))}
                         initialFocus
                       />
                     </PopoverContent>
