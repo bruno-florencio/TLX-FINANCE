@@ -131,7 +131,7 @@ const RelatoriosTab = () => {
           Relatórios Financeiros
         </h1>
         <p className="text-muted-foreground">
-          Análises e demonstrativos do sistema H MOLINA
+          Análises e demonstrativos financeiros
         </p>
       </div>
 
