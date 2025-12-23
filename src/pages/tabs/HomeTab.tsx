@@ -247,11 +247,14 @@ const HomeTab = () => {
           Dashboard Financeiro
         </h1>
         <p className="text-muted-foreground">
-          Visão geral do sistema H MOLINA - {new Date().toLocaleDateString("pt-BR", { 
+          {new Date().toLocaleString("pt-BR", { 
+            timeZone: 'America/Sao_Paulo',
             weekday: 'long', 
             year: 'numeric', 
             month: 'long', 
-            day: 'numeric' 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
           })}
         </p>
       </div>
