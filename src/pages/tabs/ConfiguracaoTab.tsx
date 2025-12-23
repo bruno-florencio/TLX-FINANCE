@@ -19,6 +19,7 @@ import { useSupabaseData } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
 import NovaContaSheet from "@/components/forms/NovaContaSheet";
 import { bancosUnicos } from "@/data/bancosBrasileiros";
+import { BankLogo, CardBrandLogo } from "@/components/ui/BankLogo";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -203,27 +204,22 @@ const ConfiguracaoTab = () => {
                     key={conta.id} 
                     className="relative p-4 rounded-xl border border-border bg-gradient-to-br from-muted/30 to-muted/10 hover:shadow-lg transition-all duration-300"
                   >
-                    {/* Header com emblema do banco */}
+                    {/* Header com emblema do banco ou bandeira do cartão */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        {bancoInfo ? (
-                          <div 
-                            className="w-12 h-12 rounded-lg flex items-center justify-center text-xs font-bold shadow-md"
-                            style={{ 
-                              backgroundColor: bancoInfo.cor,
-                              color: bancoInfo.corTexto
-                            }}
-                          >
-                            {bancoInfo.codigo}
-                          </div>
+                        {isCartao ? (
+                          <CardBrandLogo brandId={conta.bandeira} size="md" />
                         ) : (
-                          <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-                            <CreditCard className="w-6 h-6 text-muted-foreground" />
-                          </div>
+                          <BankLogo bankName={conta.banco} size="md" />
                         )}
                         <div>
                           <p className="font-semibold text-foreground">{conta.nome}</p>
-                          <p className="text-sm text-muted-foreground">{conta.banco || "Banco não informado"}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {isCartao 
+                              ? conta.bandeira || "Bandeira não informada"
+                              : conta.banco || "Banco não informado"
+                            }
+                          </p>
                         </div>
                       </div>
                       <Badge variant={tipoBadge.variant} className="text-xs">
