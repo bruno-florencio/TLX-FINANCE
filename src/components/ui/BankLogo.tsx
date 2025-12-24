@@ -51,25 +51,27 @@ const cardBrandLogoUrls: Record<string, string> = {
 
 interface BankLogoProps {
   bankName?: string | null;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   showFallback?: boolean;
   className?: string;
 }
 
 interface CardBrandLogoProps {
   brandId?: string | null;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   showFallback?: boolean;
   className?: string;
 }
 
 const sizeClasses = {
+  xs: "w-5 h-5",
   sm: "w-8 h-8",
   md: "w-12 h-12",
   lg: "w-16 h-16",
 };
 
 const textSizeClasses = {
+  xs: "text-[6px]",
   sm: "text-[8px]",
   md: "text-xs",
   lg: "text-sm",
