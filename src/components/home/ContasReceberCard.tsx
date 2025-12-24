@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Calendar, Building2, AlertCircle } from "lucide-react";
+import { TrendingUp, Calendar, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { BankLogo } from "@/components/ui/BankLogo";
 
 interface Lancamento {
   id: string;
@@ -89,27 +87,15 @@ export const ContasReceberCard = () => {
     return new Date(dateString).toLocaleDateString("pt-BR");
   };
 
-  const getStatusBadge = (diasAtraso: number) => {
+  const getStatusLabel = (diasAtraso: number) => {
     if (diasAtraso > 0) {
-      return (
-        <Badge className="bg-pendente/20 text-pendente border-pendente/30 text-xs">
-          {diasAtraso}d atraso
-        </Badge>
-      );
+      return <span className="text-xs text-pendente">{diasAtraso}d atraso</span>;
     }
     if (diasAtraso === 0) {
-      return (
-        <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">
-          Vence hoje
-        </Badge>
-      );
+      return <span className="text-xs text-entrada">Hoje</span>;
     }
     if (diasAtraso >= -7) {
-      return (
-        <Badge className="bg-secondary/20 text-secondary border-secondary/30 text-xs">
-          {Math.abs(diasAtraso)}d restantes
-        </Badge>
-      );
+      return <span className="text-xs text-muted-foreground">{Math.abs(diasAtraso)}d</span>;
     }
     return null;
   };
@@ -123,64 +109,58 @@ export const ContasReceberCard = () => {
     .reduce((sum, c) => sum + Number(c.valor), 0);
 
   return (
-    <Card className="h-molina-card h-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <TrendingUp className="w-5 h-5 text-entrada" />
-          <span>Contas a Receber</span>
-        </CardTitle>
+    <Card className="clean-card h-full">
+      <CardHeader className="pb-3 px-5 pt-4">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-entrada" />
+          <CardTitle className="text-base font-semibold text-foreground">
+            Contas a Receber
+          </CardTitle>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="px-5 pb-4">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent"></div>
           </div>
         ) : contasReceber.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
-            <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <TrendingUp className="w-10 h-10 mx-auto mb-2 opacity-30" />
             <p className="text-sm">Nenhuma conta a receber</p>
           </div>
         ) : (
           <>
             {/* Header */}
-            <div className="grid grid-cols-[1fr_auto_auto] gap-2 px-2 py-2 text-xs font-semibold text-muted-foreground border-b border-border">
+            <div className="grid grid-cols-[1fr_80px_90px] gap-2 pb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide border-b border-border/50">
               <div>Descrição</div>
-              <div className="w-24 text-center">Previsão</div>
-              <div className="w-28 text-right">Valor</div>
+              <div className="text-center">Prev.</div>
+              <div className="text-right">Valor</div>
             </div>
 
             {/* Lista */}
-            <div className="space-y-2 max-h-[320px] overflow-y-auto">
+            <div className="divide-y divide-border/40 max-h-[280px] overflow-y-auto">
               {contasReceber.slice(0, 10).map((conta) => (
                 <div
                   key={conta.id}
-                  className={`grid grid-cols-[1fr_auto_auto] gap-2 items-center p-3 rounded-lg border transition-all ${
-                    conta.diasAtraso > 0
-                      ? "bg-pendente/5 border-pendente/20"
-                      : "bg-muted/30 border-border"
-                  }`}
+                  className="grid grid-cols-[1fr_80px_90px] gap-2 items-center py-2.5"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium truncate">
+                      <span className="text-sm font-medium truncate text-foreground">
                         {conta.descricao}
                       </span>
-                      {getStatusBadge(conta.diasAtraso)}
+                      {getStatusLabel(conta.diasAtraso)}
                     </div>
                     {conta.conta_nome && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <BankLogo bankName={conta.banco || conta.conta_nome} size="sm" />
-                        <span className="text-xs text-muted-foreground truncate">
-                          {conta.conta_nome}
-                        </span>
-                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {conta.conta_nome}
+                      </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground w-24 justify-center">
-                    <Calendar className="w-3 h-3" />
-                    <span>{formatDate(conta.data_vencimento)}</span>
+                  <div className="text-center text-xs text-muted-foreground tabular-nums">
+                    {formatDate(conta.data_vencimento)}
                   </div>
-                  <div className="w-28 text-right font-semibold text-entrada">
+                  <div className="text-right text-sm font-semibold text-entrada tabular-nums">
                     {formatCurrency(conta.valor)}
                   </div>
                 </div>
@@ -188,21 +168,21 @@ export const ContasReceberCard = () => {
             </div>
 
             {/* Resumo */}
-            <div className="border-t border-border pt-3 space-y-2">
+            <div className="border-t border-border/50 pt-3 mt-2 space-y-1.5">
               {totalAtrasado > 0 && (
-                <div className="flex items-center justify-between px-2">
-                  <div className="flex items-center gap-2 text-sm text-pendente">
-                    <AlertCircle className="w-4 h-4" />
-                    <span>Total Atrasado</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs text-pendente">
+                    <AlertCircle className="w-3 h-3" />
+                    <span>Atrasado</span>
                   </div>
-                  <span className="font-bold text-pendente">
+                  <span className="text-sm font-semibold text-pendente tabular-nums">
                     {formatCurrency(totalAtrasado)}
                   </span>
                 </div>
               )}
-              <div className="flex items-center justify-between px-2">
-                <span className="text-sm font-bold">TOTAL A RECEBER</span>
-                <span className="font-bold text-lg text-entrada">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-foreground">Total</span>
+                <span className="text-lg font-bold text-entrada tabular-nums">
                   {formatCurrency(totalAReceber)}
                 </span>
               </div>

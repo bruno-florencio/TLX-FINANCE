@@ -7,35 +7,30 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const HomeTab = () => {
-  const dataAtual = new Date().toLocaleString("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const hoje = new Date();
+  const dataFormatada = format(hoje, "EEEE, d 'de' MMMM", { locale: ptBR });
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground font-american-captain tracking-wide">
-          Dashboard Financeiro
-        </h1>
-        <p className="text-muted-foreground capitalize">{dataAtual}</p>
+      {/* Header - Minimal */}
+      <div className="flex items-baseline justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">
+            Dashboard
+          </h1>
+          <p className="text-sm text-muted-foreground capitalize mt-0.5">{dataFormatada}</p>
+        </div>
       </div>
 
       {/* Layout principal em grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-5">
         {/* Coluna esquerda: Saldos, Contas a Pagar, Contas a Receber */}
-        <div className="xl:col-span-3 space-y-6">
+        <div className="xl:col-span-3 space-y-5">
           {/* Primeira linha: Saldos de Caixa */}
           <SaldosCaixaCard />
 
           {/* Segunda linha: Contas a Pagar e Receber */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <ContasPagarCard />
             <ContasReceberCard />
           </div>

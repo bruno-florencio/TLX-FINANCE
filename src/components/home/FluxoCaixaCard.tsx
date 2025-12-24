@@ -11,7 +11,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import {
   startOfMonth,
@@ -91,7 +90,6 @@ export const FluxoCaixaCard = () => {
     const fim = endOfMonth(mesAtual);
     const dias = eachDayOfInterval({ start: inicio, end: fim });
 
-    // Calcular saldo inicial (todas as entradas pagas - saídas pagas até o início do mês)
     const lancamentosAnteriores = lancamentos.filter((l) => {
       const dataLanc = new Date(l.data_vencimento);
       return dataLanc < inicio && contasIds.includes(l.conta_id);
@@ -147,7 +145,6 @@ export const FluxoCaixaCard = () => {
     );
     setContas(newContas);
     
-    // Refetch data with new selection
     const selectedIds = newContas.filter((c) => c.selected).map((c) => c.id);
     if (selectedIds.length > 0) {
       supabase
@@ -173,11 +170,11 @@ export const FluxoCaixaCard = () => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-          <p className="font-medium mb-2 text-foreground">Dia {label}</p>
+          <p className="font-medium mb-2 text-sm text-foreground">Dia {label}</p>
           {payload.map((entry: any, index: number) => (
             <div
               key={index}
-              className="flex items-center gap-2 text-sm"
+              className="flex items-center gap-2 text-xs"
               style={{ color: entry.color }}
             >
               <div
@@ -185,7 +182,7 @@ export const FluxoCaixaCard = () => {
                 style={{ backgroundColor: entry.color }}
               />
               <span>{entry.name}:</span>
-              <span className="font-medium">
+              <span className="font-medium tabular-nums">
                 {new Intl.NumberFormat("pt-BR", {
                   style: "currency",
                   currency: "BRL",
@@ -205,37 +202,39 @@ export const FluxoCaixaCard = () => {
   const totalSaidas = chartData.reduce((sum, d) => sum + d.saidas, 0);
 
   return (
-    <Card className="h-molina-card">
-      <CardHeader className="pb-3">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <BarChart3 className="w-5 h-5 text-accent" />
-            <span>
-              Fluxo de Caixa -{" "}
-              {format(mesAtual, "MMMM yyyy", { locale: ptBR })}
-            </span>
-          </CardTitle>
+    <Card className="clean-card">
+      <CardHeader className="pb-3 px-5 pt-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-muted-foreground" />
+            <CardTitle className="text-base font-semibold text-foreground">
+              Fluxo de Caixa
+              <span className="font-normal text-muted-foreground ml-2 text-sm">
+                {format(mesAtual, "MMMM yyyy", { locale: ptBR })}
+              </span>
+            </CardTitle>
+          </div>
           
           {/* Resumo */}
           <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-entrada" />
-              <span className="text-muted-foreground">Entradas:</span>
-              <span className="font-semibold text-entrada">
+            <div className="flex items-center gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5 text-entrada" />
+              <span className="text-muted-foreground text-xs">Entradas</span>
+              <span className="font-semibold text-entrada tabular-nums text-sm">
                 {formatCurrency(totalEntradas)}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <TrendingDown className="w-4 h-4 text-saida" />
-              <span className="text-muted-foreground">Saídas:</span>
-              <span className="font-semibold text-saida">
+            <div className="flex items-center gap-1.5">
+              <TrendingDown className="w-3.5 h-3.5 text-saida" />
+              <span className="text-muted-foreground text-xs">Saídas</span>
+              <span className="font-semibold text-saida tabular-nums text-sm">
                 {formatCurrency(totalSaidas)}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Saldo Final:</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground text-xs">Saldo</span>
               <span
-                className={`font-bold ${
+                className={`font-bold tabular-nums ${
                   saldoFinal >= 0 ? "text-entrada" : "text-saida"
                 }`}
               >
@@ -247,18 +246,18 @@ export const FluxoCaixaCard = () => {
 
         {/* Filtro de contas */}
         {contas.length > 0 && (
-          <div className="flex flex-wrap gap-3 mt-4">
+          <div className="flex flex-wrap gap-3 mt-3">
             {contas.map((conta) => (
               <label
                 key={conta.id}
-                className="flex items-center gap-2 cursor-pointer"
+                className="flex items-center gap-1.5 cursor-pointer"
               >
                 <Checkbox
                   checked={conta.selected}
                   onCheckedChange={() => toggleConta(conta.id)}
-                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary h-3.5 w-3.5"
                 />
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {conta.nome}
                 </span>
               </label>
@@ -266,102 +265,61 @@ export const FluxoCaixaCard = () => {
           </div>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-5 pb-4">
         {loading ? (
-          <div className="flex items-center justify-center h-[300px]">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="flex items-center justify-center h-[260px]">
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent"></div>
           </div>
         ) : chartData.length === 0 ? (
-          <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+          <div className="flex items-center justify-center h-[260px] text-muted-foreground">
             <div className="text-center">
-              <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <BarChart3 className="w-10 h-10 mx-auto mb-2 opacity-30" />
               <p className="text-sm">Sem dados para exibir</p>
             </div>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={chartData}>
               <defs>
-                <linearGradient id="colorEntradas" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="colorSaldoClean" x1="0" y1="0" x2="0" y2="1">
                   <stop
                     offset="5%"
-                    stopColor="hsl(var(--entrada))"
-                    stopOpacity={0.6}
+                    stopColor="hsl(var(--primary))"
+                    stopOpacity={0.3}
                   />
                   <stop
                     offset="95%"
-                    stopColor="hsl(var(--entrada))"
-                    stopOpacity={0.05}
-                  />
-                </linearGradient>
-                <linearGradient id="colorSaidas" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor="hsl(var(--saida))"
-                    stopOpacity={0.6}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor="hsl(var(--saida))"
-                    stopOpacity={0.05}
-                  />
-                </linearGradient>
-                <linearGradient id="colorSaldo" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor="hsl(var(--secondary))"
-                    stopOpacity={0.8}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor="hsl(var(--secondary))"
-                    stopOpacity={0.1}
+                    stopColor="hsl(var(--primary))"
+                    stopOpacity={0.02}
                   />
                 </linearGradient>
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
-                className="stroke-border"
-                opacity={0.3}
+                stroke="hsl(var(--border))"
+                opacity={0.5}
+                vertical={false}
               />
               <XAxis
                 dataKey="dia"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
               />
               <YAxis
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
                 tickFormatter={(value) => formatCurrency(value)}
-                width={80}
+                width={70}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Legend
-                wrapperStyle={{ fontSize: "12px" }}
-                iconType="circle"
-              />
-              <Area
-                type="monotone"
-                dataKey="entradas"
-                name="Entradas"
-                stroke="hsl(var(--entrada))"
-                fill="url(#colorEntradas)"
-                strokeWidth={2}
-              />
-              <Area
-                type="monotone"
-                dataKey="saidas"
-                name="Saídas"
-                stroke="hsl(var(--saida))"
-                fill="url(#colorSaidas)"
-                strokeWidth={2}
-              />
               <Area
                 type="monotone"
                 dataKey="saldoAcumulado"
-                name="Saldo Acumulado"
-                stroke="hsl(var(--secondary))"
-                fill="url(#colorSaldo)"
+                name="Saldo"
+                stroke="hsl(var(--primary))"
+                fill="url(#colorSaldoClean)"
                 strokeWidth={2}
               />
             </AreaChart>
