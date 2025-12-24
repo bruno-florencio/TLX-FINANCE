@@ -1,0 +1,373 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { BarChart3, TrendingUp, TrendingDown } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
+import {
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  format,
+  parseISO,
+} from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+interface Conta {
+  id: string;
+  nome: string;
+  selected: boolean;
+}
+
+interface ChartDataPoint {
+  dia: string;
+  entradas: number;
+  saidas: number;
+  saldo: number;
+  saldoAcumulado: number;
+}
+
+export const FluxoCaixaCard = () => {
+  const [contas, setContas] = useState<Conta[]>([]);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [mesAtual, setMesAtual] = useState(new Date());
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+
+      const [contasRes, lancamentosRes] = await Promise.all([
+        supabase
+          .from("contas")
+          .select("id, nome")
+          .eq("ativo", true)
+          .neq("tipo", "cartao_credito")
+          .order("nome"),
+        supabase
+          .from("lancamentos")
+          .select("*")
+          .order("data_vencimento"),
+      ]);
+
+      if (contasRes.error) throw contasRes.error;
+      if (lancamentosRes.error) throw lancamentosRes.error;
+
+      const contasFormatadas = (contasRes.data || []).map((c) => ({
+        ...c,
+        selected: true,
+      }));
+
+      setContas(contasFormatadas);
+      prepareChartData(
+        lancamentosRes.data || [],
+        contasFormatadas.map((c) => c.id)
+      );
+    } catch (error) {
+      console.error("Erro ao buscar dados:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const prepareChartData = async (
+    lancamentos: any[],
+    contasIds: string[]
+  ) => {
+    const inicio = startOfMonth(mesAtual);
+    const fim = endOfMonth(mesAtual);
+    const dias = eachDayOfInterval({ start: inicio, end: fim });
+
+    // Calcular saldo inicial (todas as entradas pagas - saídas pagas até o início do mês)
+    const lancamentosAnteriores = lancamentos.filter((l) => {
+      const dataLanc = new Date(l.data_vencimento);
+      return dataLanc < inicio && contasIds.includes(l.conta_id);
+    });
+
+    const saldoInicial = lancamentosAnteriores.reduce((acc, l) => {
+      if (l.tipo === "entrada" && l.status === "pago") {
+        return acc + Number(l.valor);
+      }
+      if (l.tipo === "saida" && l.status === "pago") {
+        return acc - Number(l.valor);
+      }
+      return acc;
+    }, 0);
+
+    let saldoAcumulado = saldoInicial;
+
+    const dadosGrafico: ChartDataPoint[] = dias.map((dia) => {
+      const diaFormatado = format(dia, "yyyy-MM-dd");
+      const diaLabel = format(dia, "dd", { locale: ptBR });
+
+      const lancamentosDia = lancamentos.filter((l) => {
+        const dataLanc = format(parseISO(l.data_vencimento), "yyyy-MM-dd");
+        return dataLanc === diaFormatado && contasIds.includes(l.conta_id);
+      });
+
+      const entradas = lancamentosDia
+        .filter((l) => l.tipo === "entrada")
+        .reduce((sum, l) => sum + Number(l.valor), 0);
+
+      const saidas = lancamentosDia
+        .filter((l) => l.tipo === "saida")
+        .reduce((sum, l) => sum + Number(l.valor), 0);
+
+      const saldo = entradas - saidas;
+      saldoAcumulado += saldo;
+
+      return {
+        dia: diaLabel,
+        entradas,
+        saidas,
+        saldo,
+        saldoAcumulado,
+      };
+    });
+
+    setChartData(dadosGrafico);
+  };
+
+  const toggleConta = (id: string) => {
+    const newContas = contas.map((c) =>
+      c.id === id ? { ...c, selected: !c.selected } : c
+    );
+    setContas(newContas);
+    
+    // Refetch data with new selection
+    const selectedIds = newContas.filter((c) => c.selected).map((c) => c.id);
+    if (selectedIds.length > 0) {
+      supabase
+        .from("lancamentos")
+        .select("*")
+        .order("data_vencimento")
+        .then(({ data }) => {
+          if (data) prepareChartData(data, selectedIds);
+        });
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(value);
+  };
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+          <p className="font-medium mb-2 text-foreground">Dia {label}</p>
+          {payload.map((entry: any, index: number) => (
+            <div
+              key={index}
+              className="flex items-center gap-2 text-sm"
+              style={{ color: entry.color }}
+            >
+              <div
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: entry.color }}
+              />
+              <span>{entry.name}:</span>
+              <span className="font-medium">
+                {new Intl.NumberFormat("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                }).format(entry.value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const saldoFinal =
+    chartData.length > 0 ? chartData[chartData.length - 1].saldoAcumulado : 0;
+  const totalEntradas = chartData.reduce((sum, d) => sum + d.entradas, 0);
+  const totalSaidas = chartData.reduce((sum, d) => sum + d.saidas, 0);
+
+  return (
+    <Card className="h-molina-card">
+      <CardHeader className="pb-3">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <BarChart3 className="w-5 h-5 text-accent" />
+            <span>
+              Fluxo de Caixa -{" "}
+              {format(mesAtual, "MMMM yyyy", { locale: ptBR })}
+            </span>
+          </CardTitle>
+          
+          {/* Resumo */}
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-entrada" />
+              <span className="text-muted-foreground">Entradas:</span>
+              <span className="font-semibold text-entrada">
+                {formatCurrency(totalEntradas)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <TrendingDown className="w-4 h-4 text-saida" />
+              <span className="text-muted-foreground">Saídas:</span>
+              <span className="font-semibold text-saida">
+                {formatCurrency(totalSaidas)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Saldo Final:</span>
+              <span
+                className={`font-bold ${
+                  saldoFinal >= 0 ? "text-entrada" : "text-saida"
+                }`}
+              >
+                {formatCurrency(saldoFinal)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Filtro de contas */}
+        {contas.length > 0 && (
+          <div className="flex flex-wrap gap-3 mt-4">
+            {contas.map((conta) => (
+              <label
+                key={conta.id}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Checkbox
+                  checked={conta.selected}
+                  onCheckedChange={() => toggleConta(conta.id)}
+                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                />
+                <span className="text-sm text-muted-foreground">
+                  {conta.nome}
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex items-center justify-center h-[300px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+            <div className="text-center">
+              <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">Sem dados para exibir</p>
+            </div>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="colorEntradas" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="5%"
+                    stopColor="hsl(var(--entrada))"
+                    stopOpacity={0.6}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor="hsl(var(--entrada))"
+                    stopOpacity={0.05}
+                  />
+                </linearGradient>
+                <linearGradient id="colorSaidas" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="5%"
+                    stopColor="hsl(var(--saida))"
+                    stopOpacity={0.6}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor="hsl(var(--saida))"
+                    stopOpacity={0.05}
+                  />
+                </linearGradient>
+                <linearGradient id="colorSaldo" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="5%"
+                    stopColor="hsl(var(--secondary))"
+                    stopOpacity={0.8}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor="hsl(var(--secondary))"
+                    stopOpacity={0.1}
+                  />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                className="stroke-border"
+                opacity={0.3}
+              />
+              <XAxis
+                dataKey="dia"
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
+              />
+              <YAxis
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
+                tickFormatter={(value) => formatCurrency(value)}
+                width={80}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend
+                wrapperStyle={{ fontSize: "12px" }}
+                iconType="circle"
+              />
+              <Area
+                type="monotone"
+                dataKey="entradas"
+                name="Entradas"
+                stroke="hsl(var(--entrada))"
+                fill="url(#colorEntradas)"
+                strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="saidas"
+                name="Saídas"
+                stroke="hsl(var(--saida))"
+                fill="url(#colorSaidas)"
+                strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="saldoAcumulado"
+                name="Saldo Acumulado"
+                stroke="hsl(var(--secondary))"
+                fill="url(#colorSaldo)"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
