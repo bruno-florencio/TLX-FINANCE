@@ -29,69 +29,78 @@ const Header = ({ currentTab, onTabChange }: HeaderProps) => {
   ];
 
   return (
-    <header className="bg-card border-b border-border">
+    <header className="bg-card border-b border-border/60 sticky top-0 z-50 backdrop-blur-sm bg-card/95">
       <div className="container mx-auto px-4">
         {/* Desktop Header */}
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-2xl font-american-captain text-primary-foreground">T</span>
+        <div className="flex items-center justify-between h-14">
+          {/* Logo - Minimal */}
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
+              <span className="text-sm font-bold text-primary-foreground">T</span>
             </div>
-            <div>
-              <h1 className="text-2xl font-american-captain text-primary uppercase">TECHLABX</h1>
-              <p className="text-sm text-muted-foreground">Sistema Financeiro</p>
-            </div>
+            <span className="text-lg font-semibold text-foreground">TechLabX</span>
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-1">
+          {/* Desktop Navigation - Clean pills */}
+          <nav className="hidden md:flex items-center gap-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
+              const isActive = currentTab === tab.id;
               return (
-                <Button
+                <button
                   key={tab.id}
-                  variant={currentTab === tab.id ? "default" : "ghost"}
                   onClick={() => onTabChange(tab.id)}
-                  className="flex items-center space-x-2"
+                  className={`
+                    flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium
+                    transition-all duration-200
+                    ${isActive 
+                      ? "bg-primary text-primary-foreground" 
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }
+                  `}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
-                </Button>
+                </button>
               );
             })}
           </nav>
 
           {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
+          <button
+            className="md:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </Button>
+          </button>
         </div>
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <nav className="md:hidden pb-4 border-t border-border mt-2 pt-4">
-            <div className="flex flex-col space-y-2">
+          <nav className="md:hidden pb-4 pt-2 border-t border-border/40">
+            <div className="flex flex-col gap-1">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
+                const isActive = currentTab === tab.id;
                 return (
-                  <Button
+                  <button
                     key={tab.id}
-                    variant={currentTab === tab.id ? "default" : "ghost"}
                     onClick={() => {
                       onTabChange(tab.id);
                       setMobileMenuOpen(false);
                     }}
-                    className="flex items-center justify-start space-x-2 w-full"
+                    className={`
+                      flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium w-full text-left
+                      transition-all duration-200
+                      ${isActive 
+                        ? "bg-primary text-primary-foreground" 
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      }
+                    `}
                   >
                     <Icon className="w-4 h-4" />
                     <span>{tab.label}</span>
-                  </Button>
+                  </button>
                 );
               })}
             </div>

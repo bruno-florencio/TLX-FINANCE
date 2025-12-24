@@ -4,114 +4,122 @@
 @tailwind components;
 @tailwind utilities;
 
-/* H MOLINA Design System - All colors must be HSL */
+/* Clean Financial Design System - Light Theme */
 
 @layer base {
   :root {
-    /* H MOLINA Brand Colors */
-    --h-molina-green: 120 96% 40%; /* RGB(4, 201, 4) */
-    --h-molina-light-blue: 207 65% 42%; /* RGB(38, 114, 176) */
-    --h-molina-medium-blue: 208 92% 30%; /* RGB(6, 84, 148) */
-    --h-molina-dark-blue: 208 97% 24%; /* RGB(2, 67, 120) */
-    --h-molina-dark-bg: 0 1% 16%; /* RGB(40, 40, 41) */
+    /* Brand Colors - Used sparingly for accents */
+    --h-molina-green: 142 76% 36%;
+    --h-molina-light-blue: 207 65% 42%;
+    --h-molina-medium-blue: 208 80% 32%;
+    --h-molina-dark-blue: 208 85% 25%;
     
-    /* System Colors */
-    --background: var(--h-molina-dark-bg);
-    --foreground: 0 0% 98%;
+    /* Light, Clean Background */
+    --background: 210 20% 98%;
+    --foreground: 215 25% 15%;
     
-    --card: 0 1% 20%;
-    --card-foreground: 0 0% 98%;
+    /* Cards - White with subtle shadow */
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
     
-    --popover: 0 1% 20%;
-    --popover-foreground: 0 0% 98%;
+    /* Popover */
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
     
-    --primary: var(--h-molina-green);
-    --primary-foreground: 0 0% 0%;
+    /* Primary - Brand Blue (used sparingly) */
+    --primary: 208 80% 32%;
+    --primary-foreground: 0 0% 100%;
     
-    --secondary: var(--h-molina-light-blue);
-    --secondary-foreground: 0 0% 98%;
+    /* Secondary - Light gray surface */
+    --secondary: 210 15% 96%;
+    --secondary-foreground: 215 25% 25%;
     
-    --muted: 0 1% 25%;
-    --muted-foreground: 0 0% 70%;
+    /* Muted - Subtle backgrounds */
+    --muted: 210 15% 95%;
+    --muted-foreground: 215 15% 50%;
     
-    --accent: var(--h-molina-medium-blue);
-    --accent-foreground: 0 0% 98%;
+    /* Accent - Light blue tint */
+    --accent: 210 40% 96%;
+    --accent-foreground: 208 80% 32%;
     
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    /* Destructive */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
     
-    --border: 0 1% 30%;
-    --input: 0 1% 25%;
-    --ring: var(--h-molina-green);
+    /* Borders - Very subtle */
+    --border: 214 20% 91%;
+    --input: 214 20% 91%;
+    --ring: 208 80% 32%;
     
-    --radius: 0.75rem;
+    --radius: 0.5rem;
     
-    /* Status Colors */
-    --success: var(--h-molina-green);
-    --warning: 45 93% 47%;
-    --info: var(--h-molina-light-blue);
-    --danger: 0 84% 60%;
+    /* Status Colors - Clean and clear */
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 207 65% 42%;
+    --danger: 0 72% 51%;
     
     /* Financial Status Colors */
-    --entrada: var(--h-molina-green);
-    --saida: 0 84% 60%;
-    --pago: 120 60% 50%; /* Verde */
-    --pendente: 45 93% 47%; /* Amarelo */
-    --atrasado: 0 84% 50%; /* Vermelho */
+    --entrada: 142 76% 36%;
+    --saida: 0 72% 51%;
+    --pago: 142 70% 45%;
+    --pendente: 38 92% 50%;
+    --atrasado: 0 72% 51%;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 215 25% 25%;
+    --sidebar-primary: 208 80% 32%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 15% 96%;
+    --sidebar-accent-foreground: 215 25% 25%;
+    --sidebar-border: 214 20% 91%;
+    --sidebar-ring: 208 80% 32%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 220 15% 8%;
+    --foreground: 210 20% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 220 15% 12%;
+    --card-foreground: 210 20% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 15% 12%;
+    --popover-foreground: 210 20% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 142 76% 42%;
+    --primary-foreground: 220 15% 8%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 15% 16%;
+    --secondary-foreground: 210 20% 90%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 220 15% 18%;
+    --muted-foreground: 215 15% 55%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 220 15% 16%;
+    --accent-foreground: 210 20% 95%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 210 20% 95%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 142 76% 42%;
+    
+    --entrada: 142 76% 42%;
+    --saida: 0 72% 50%;
+    --pago: 142 70% 45%;
+    --pendente: 38 92% 50%;
+    --atrasado: 0 72% 50%;
+    
+    --sidebar-background: 220 15% 8%;
+    --sidebar-foreground: 210 20% 90%;
+    --sidebar-primary: 142 76% 42%;
+    --sidebar-primary-foreground: 220 15% 8%;
+    --sidebar-accent: 220 15% 16%;
+    --sidebar-accent-foreground: 210 20% 90%;
+    --sidebar-border: 220 15% 20%;
+    --sidebar-ring: 142 76% 42%;
   }
 }
 
@@ -121,7 +129,7 @@
   }
 
   body {
-    @apply bg-background text-foreground font-montserrat;
+    @apply bg-background text-foreground font-montserrat antialiased;
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -130,27 +138,58 @@
 }
 
 @layer components {
-  .h-molina-card {
-    @apply bg-card border border-border rounded-lg p-6 shadow-lg;
+  /* Clean Card Style */
+  .clean-card {
+    @apply bg-card rounded-lg border border-border/60 shadow-sm;
   }
   
+  /* Status Indicators - Minimal */
   .entrada-indicator {
-    @apply bg-green-500/20 text-green-400 border border-green-500/30;
+    @apply text-entrada font-medium;
   }
   
   .saida-indicator {
-    @apply bg-red-500/20 text-red-400 border border-red-500/30;
+    @apply text-saida font-medium;
   }
   
   .pago-indicator {
-    @apply bg-green-500/20 text-green-400 border border-green-500/30;
+    @apply bg-pago/10 text-pago border border-pago/20 rounded-full px-2 py-0.5 text-xs font-medium;
   }
   
   .pendente-indicator {
-    @apply bg-yellow-500/20 text-yellow-400 border border-yellow-500/30;
+    @apply bg-pendente/10 text-pendente border border-pendente/20 rounded-full px-2 py-0.5 text-xs font-medium;
   }
   
   .atrasado-indicator {
-    @apply bg-red-500/20 text-red-400 border border-red-500/30;
+    @apply bg-atrasado/10 text-atrasado border border-atrasado/20 rounded-full px-2 py-0.5 text-xs font-medium;
   }
+  
+  /* Clean Table Rows */
+  .table-row-clean {
+    @apply border-b border-border/40 last:border-b-0;
+  }
+  
+  /* Subtle hover states */
+  .hover-subtle {
+    @apply transition-colors hover:bg-muted/50;
+  }
+}
+
+/* Scrollbar styling for cleaner look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.3);
 }
