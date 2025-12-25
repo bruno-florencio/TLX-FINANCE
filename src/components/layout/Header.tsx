@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Home, 
   TrendingUp, 
@@ -8,8 +9,17 @@ import {
   Settings,
   Menu,
   X,
-  Receipt
+  Receipt,
+  LogOut,
+  User
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   currentTab: string;
@@ -18,6 +28,11 @@ interface HeaderProps {
 
 const Header = ({ currentTab, onTabChange }: HeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   const tabs = [
     { id: "home", label: "Home", icon: Home },
@@ -66,6 +81,31 @@ const Header = ({ currentTab, onTabChange }: HeaderProps) => {
             })}
           </nav>
 
+          {/* User Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="hidden md:flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                <div className="w-6 h-6 bg-muted rounded-full flex items-center justify-center">
+                  <User className="w-3.5 h-3.5" />
+                </div>
+                <span className="max-w-[120px] truncate text-xs">
+                  {user?.email}
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <div className="px-2 py-1.5">
+                <p className="text-xs text-muted-foreground">Logado como</p>
+                <p className="text-sm font-medium truncate">{user?.email}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {/* Mobile Menu Button */}
           <button
             className="md:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -103,6 +143,20 @@ const Header = ({ currentTab, onTabChange }: HeaderProps) => {
                   </button>
                 );
               })}
+              
+              {/* Mobile User Info & Logout */}
+              <div className="border-t border-border/40 mt-2 pt-2">
+                <div className="px-3 py-2 text-xs text-muted-foreground">
+                  {user?.email}
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium w-full text-left text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sair</span>
+                </button>
+              </div>
             </div>
           </nav>
         )}
