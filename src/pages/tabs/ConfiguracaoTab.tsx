@@ -74,7 +74,7 @@ const ConfiguracaoTab = () => {
       let tableName = "";
       switch (itemToDelete.type) {
         case "Conta":
-          tableName = "contas";
+          tableName = "contas_bancarias";
           break;
         case "Categoria":
           tableName = "categorias";

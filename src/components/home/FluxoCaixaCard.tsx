@@ -51,7 +51,7 @@ export const FluxoCaixaCard = () => {
 
       const [contasRes, lancamentosRes] = await Promise.all([
         supabase
-          .from("contas")
+          .from("contas_bancarias")
           .select("id, nome")
           .eq("ativo", true)
           .neq("tipo", "cartao_credito")

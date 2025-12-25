@@ -34,7 +34,7 @@ export const SaldosCaixaCard = () => {
       setLoading(true);
       
       const { data: contasData, error: contasError } = await supabase
-        .from("contas")
+        .from("contas_bancarias")
         .select("*")
         .eq("ativo", true)
         .neq("tipo", "cartao_credito")

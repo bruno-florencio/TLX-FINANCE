@@ -22,6 +22,8 @@ export type Database = {
           nome: string
           tipo: string
           updated_at: string
+          user_id: string | null
+          workspace_id: string | null
         }
         Insert: {
           cor?: string | null
@@ -30,6 +32,8 @@ export type Database = {
           nome: string
           tipo: string
           updated_at?: string
+          user_id?: string | null
+          workspace_id?: string | null
         }
         Update: {
           cor?: string | null
@@ -38,8 +42,18 @@ export type Database = {
           nome?: string
           tipo?: string
           updated_at?: string
+          user_id?: string | null
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categorias_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       centros_custo: {
         Row: {
@@ -49,6 +63,8 @@ export type Database = {
           id: string
           nome: string
           updated_at: string
+          user_id: string | null
+          workspace_id: string | null
         }
         Insert: {
           ativo?: boolean
@@ -57,6 +73,8 @@ export type Database = {
           id?: string
           nome: string
           updated_at?: string
+          user_id?: string | null
+          workspace_id?: string | null
         }
         Update: {
           ativo?: boolean
@@ -65,10 +83,120 @@ export type Database = {
           id?: string
           nome?: string
           updated_at?: string
+          user_id?: string | null
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "centros_custo_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      contas: {
+      clientes: {
+        Row: {
+          contato: string | null
+          created_at: string | null
+          id: string
+          nome: string
+          workspace_id: string
+        }
+        Insert: {
+          contato?: string | null
+          created_at?: string | null
+          id?: string
+          nome: string
+          workspace_id: string
+        }
+        Update: {
+          contato?: string | null
+          created_at?: string | null
+          id?: string
+          nome?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conciliacoes: {
+        Row: {
+          created_at: string | null
+          extrato_id: string | null
+          id: string
+          lancamento_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          extrato_id?: string | null
+          id?: string
+          lancamento_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          extrato_id?: string | null
+          id?: string
+          lancamento_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conciliacoes_extrato_id_fkey"
+            columns: ["extrato_id"]
+            isOneToOne: false
+            referencedRelation: "extratos_bancarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conciliacoes_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      configuracoes: {
+        Row: {
+          created_at: string | null
+          fuso_horario: string | null
+          moeda: string | null
+          notificacoes: boolean | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          fuso_horario?: string | null
+          moeda?: string | null
+          notificacoes?: boolean | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          fuso_horario?: string | null
+          moeda?: string | null
+          notificacoes?: boolean | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "configuracoes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_bancarias: {
         Row: {
           agencia: string | null
           ativo: boolean
@@ -84,6 +212,8 @@ export type Database = {
           saldo_inicial: number
           tipo: string
           updated_at: string
+          user_id: string | null
+          workspace_id: string | null
         }
         Insert: {
           agencia?: string | null
@@ -100,6 +230,8 @@ export type Database = {
           saldo_inicial?: number
           tipo: string
           updated_at?: string
+          user_id?: string | null
+          workspace_id?: string | null
         }
         Update: {
           agencia?: string | null
@@ -116,8 +248,69 @@ export type Database = {
           saldo_inicial?: number
           tipo?: string
           updated_at?: string
+          user_id?: string | null
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contas_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      extratos_bancarios: {
+        Row: {
+          conciliado: boolean | null
+          conta_id: string | null
+          created_at: string | null
+          data: string
+          descricao: string | null
+          documento: string | null
+          id: string
+          valor: number
+          workspace_id: string | null
+        }
+        Insert: {
+          conciliado?: boolean | null
+          conta_id?: string | null
+          created_at?: string | null
+          data: string
+          descricao?: string | null
+          documento?: string | null
+          id?: string
+          valor: number
+          workspace_id?: string | null
+        }
+        Update: {
+          conciliado?: boolean | null
+          conta_id?: string | null
+          created_at?: string | null
+          data?: string
+          descricao?: string | null
+          documento?: string | null
+          id?: string
+          valor?: number
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extratos_bancarios_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extratos_bancarios_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fornecedores: {
         Row: {
@@ -131,6 +324,8 @@ export type Database = {
           telefone: string | null
           tipo_documento: string | null
           updated_at: string
+          user_id: string | null
+          workspace_id: string | null
         }
         Insert: {
           ativo?: boolean
@@ -143,6 +338,8 @@ export type Database = {
           telefone?: string | null
           tipo_documento?: string | null
           updated_at?: string
+          user_id?: string | null
+          workspace_id?: string | null
         }
         Update: {
           ativo?: boolean
@@ -155,8 +352,18 @@ export type Database = {
           telefone?: string | null
           tipo_documento?: string | null
           updated_at?: string
+          user_id?: string | null
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fornecedores_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lancamentos: {
         Row: {
@@ -177,7 +384,9 @@ export type Database = {
           tipo: string
           total_parcelas: number | null
           updated_at: string
+          user_id: string | null
           valor: number
+          workspace_id: string | null
         }
         Insert: {
           categoria_id?: string | null
@@ -197,7 +406,9 @@ export type Database = {
           tipo: string
           total_parcelas?: number | null
           updated_at?: string
+          user_id?: string | null
           valor: number
+          workspace_id?: string | null
         }
         Update: {
           categoria_id?: string | null
@@ -217,7 +428,9 @@ export type Database = {
           tipo?: string
           total_parcelas?: number | null
           updated_at?: string
+          user_id?: string | null
           valor?: number
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -238,7 +451,7 @@ export type Database = {
             foreignKeyName: "lancamentos_conta_id_fkey"
             columns: ["conta_id"]
             isOneToOne: false
-            referencedRelation: "contas"
+            referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
@@ -246,6 +459,167 @@ export type Database = {
             columns: ["fornecedor_id"]
             isOneToOne: false
             referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      logs_auditoria: {
+        Row: {
+          created_at: string | null
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          id: string
+          operacao: string
+          registro_id: string | null
+          tabela: string
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          operacao: string
+          registro_id?: string | null
+          tabela: string
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          operacao?: string
+          registro_id?: string | null
+          tabela?: string
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logs_auditoria_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagamentos: {
+        Row: {
+          conta_id: string | null
+          created_at: string | null
+          data_pagamento: string
+          id: string
+          lancamento_id: string | null
+          metodo: string | null
+          valor: number
+          workspace_id: string | null
+        }
+        Insert: {
+          conta_id?: string | null
+          created_at?: string | null
+          data_pagamento: string
+          id?: string
+          lancamento_id?: string | null
+          metodo?: string | null
+          valor: number
+          workspace_id?: string | null
+        }
+        Update: {
+          conta_id?: string | null
+          created_at?: string | null
+          data_pagamento?: string
+          id?: string
+          lancamento_id?: string | null
+          metodo?: string | null
+          valor?: number
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recebimentos: {
+        Row: {
+          conta_id: string | null
+          created_at: string | null
+          data_recebimento: string
+          id: string
+          lancamento_id: string | null
+          metodo: string | null
+          valor: number
+          workspace_id: string | null
+        }
+        Insert: {
+          conta_id?: string | null
+          created_at?: string | null
+          data_recebimento: string
+          id?: string
+          lancamento_id?: string | null
+          metodo?: string | null
+          valor: number
+          workspace_id?: string | null
+        }
+        Update: {
+          conta_id?: string | null
+          created_at?: string | null
+          data_recebimento?: string
+          id?: string
+          lancamento_id?: string | null
+          metodo?: string | null
+          valor?: number
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recebimentos_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimentos_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimentos_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -259,7 +633,9 @@ export type Database = {
           descricao: string | null
           id: string
           updated_at: string
+          user_id: string | null
           valor: number
+          workspace_id: string | null
         }
         Insert: {
           conta_destino_id: string
@@ -269,7 +645,9 @@ export type Database = {
           descricao?: string | null
           id?: string
           updated_at?: string
+          user_id?: string | null
           valor: number
+          workspace_id?: string | null
         }
         Update: {
           conta_destino_id?: string
@@ -279,31 +657,131 @@ export type Database = {
           descricao?: string | null
           id?: string
           updated_at?: string
+          user_id?: string | null
           valor?: number
+          workspace_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "transferencias_conta_destino_id_fkey"
             columns: ["conta_destino_id"]
             isOneToOne: false
-            referencedRelation: "contas"
+            referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "transferencias_conta_origem_id_fkey"
             columns: ["conta_origem_id"]
             isOneToOne: false
-            referencedRelation: "contas"
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencias_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
+      }
+      workspace_invites: {
+        Row: {
+          accepted: boolean | null
+          created_at: string | null
+          email: string | null
+          id: string
+          invited_by: string | null
+          role: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          accepted?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          invited_by?: string | null
+          role?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          accepted?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          invited_by?: string | null
+          role?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_invites_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_users: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: string | null
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: string | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: string | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_users_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome: string
+          owner_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome: string
+          owner_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome?: string
+          owner_id?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      fn_atualizar_atraso: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

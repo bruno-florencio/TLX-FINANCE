@@ -11,7 +11,7 @@ export interface Categoria {
   updated_at?: string;
 }
 
-export interface Conta {
+export interface ContaBancaria {
   id: string;
   nome: string;
   tipo: string;
@@ -24,6 +24,8 @@ export interface Conta {
   saldo_atual?: number;
   cor?: string | null;
   ativo: boolean;
+  workspace_id?: string | null;
+  user_id?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -52,7 +54,7 @@ export interface Fornecedor {
 
 export const useSupabaseData = () => {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [contas, setContas] = useState<Conta[]>([]);
+  const [contas, setContas] = useState<ContaBancaria[]>([]);
   const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +67,7 @@ export const useSupabaseData = () => {
       // Buscar todas as tabelas em paralelo
       const [categoriasRes, contasRes, centrosCustoRes, fornecedoresRes] = await Promise.all([
         supabase.from('categorias').select('*').order('nome'),
-        supabase.from('contas').select('*').eq('ativo', true).order('nome'),
+        supabase.from('contas_bancarias').select('*').eq('ativo', true).order('nome'),
         supabase.from('centros_custo').select('*').eq('ativo', true).order('nome'),
         supabase.from('fornecedores').select('*').eq('ativo', true).order('nome')
       ]);
@@ -79,7 +81,7 @@ export const useSupabaseData = () => {
       if (contasRes.error) {
         console.error('Erro ao buscar contas:', contasRes.error);
       } else {
-        setContas((contasRes.data || []) as unknown as Conta[]);
+        setContas((contasRes.data || []) as unknown as ContaBancaria[]);
       }
 
       if (centrosCustoRes.error) {

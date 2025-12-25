@@ -43,7 +43,7 @@ export const ContasReceberCard = () => {
           .eq("tipo", "entrada")
           .eq("status", "pendente")
           .order("data_vencimento", { ascending: true }),
-        supabase.from("contas").select("id, nome, banco").eq("ativo", true),
+        supabase.from("contas_bancarias").select("id, nome, banco").eq("ativo", true),
       ]);
 
       if (lancamentosRes.error) throw lancamentosRes.error;

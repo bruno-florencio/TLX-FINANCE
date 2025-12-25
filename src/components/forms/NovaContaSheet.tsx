@@ -109,7 +109,7 @@ const NovaContaSheet = ({ open, onOpenChange, onSuccess, editingConta }: NovaCon
 
       if (editingConta) {
         const { error } = await supabase
-          .from("contas")
+          .from("contas_bancarias")
           .update(contaData)
           .eq("id", editingConta.id);
 
@@ -121,7 +121,7 @@ const NovaContaSheet = ({ open, onOpenChange, onSuccess, editingConta }: NovaCon
         });
       } else {
         const { error } = await supabase
-          .from("contas")
+          .from("contas_bancarias")
           .insert([contaData]);
 
         if (error) throw error;
