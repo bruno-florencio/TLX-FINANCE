@@ -3,6 +3,7 @@ import { ContasPagarCard } from "@/components/home/ContasPagarCard";
 import { ContasReceberCard } from "@/components/home/ContasReceberCard";
 import { FluxoCaixaCard } from "@/components/home/FluxoCaixaCard";
 import { CartoesCredito } from "@/components/home/CartoesCredito";
+import { SupabaseIntegrationTest } from "@/components/SupabaseIntegrationTest";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -21,6 +22,9 @@ const HomeTab = () => {
           <p className="text-sm text-muted-foreground capitalize mt-0.5">{dataFormatada}</p>
         </div>
       </div>
+
+      {/* Teste de Integração Supabase */}
+      <SupabaseIntegrationTest />
 
       {/* Layout principal em grid */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-5">
