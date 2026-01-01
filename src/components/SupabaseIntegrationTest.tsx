@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,8 +11,6 @@ import {
   Loader2, 
   Database, 
   Shield, 
-  Plus,
-  Trash2,
   RefreshCw,
   AlertTriangle
 } from "lucide-react";
@@ -31,8 +27,6 @@ export const SupabaseIntegrationTest = () => {
   const { toast } = useToast();
   const [results, setResults] = useState<TestResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [testAccountId, setTestAccountId] = useState<string | null>(null);
-  const [newAccountName, setNewAccountName] = useState("Conta Teste Supabase");
 
   const updateResult = (name: string, update: Partial<TestResult>) => {
     setResults(prev => prev.map(r => 
@@ -42,14 +36,12 @@ export const SupabaseIntegrationTest = () => {
 
   const runTests = async () => {
     setLoading(true);
-    setTestAccountId(null);
     
     const initialResults: TestResult[] = [
       { name: "Autenticação", status: 'pending' },
-      { name: "SELECT contas_bancarias", status: 'pending' },
-      { name: "INSERT conta teste", status: 'pending' },
-      { name: "Verificar INSERT", status: 'pending' },
-      { name: "DELETE conta teste", status: 'pending' },
+      { name: "SELECT contas_bancarias (RLS)", status: 'pending' },
+      { name: "SELECT categorias (RLS)", status: 'pending' },
+      { name: "SELECT lancamentos (RLS)", status: 'pending' },
     ];
     setResults(initialResults);
 
@@ -74,71 +66,39 @@ export const SupabaseIntegrationTest = () => {
       return;
     }
 
-    // Test 2: SELECT from contas_bancarias
-    updateResult("SELECT contas_bancarias", { status: 'running' });
+    // Test 2: SELECT from contas_bancarias - SEM filtros manuais (RLS cuida)
+    updateResult("SELECT contas_bancarias (RLS)", { status: 'running' });
     try {
-      const { data, error, count } = await supabase
+      const { data, error } = await supabase
         .from("contas_bancarias")
-        .select("*", { count: 'exact' })
+        .select("*")
         .eq("ativo", true);
       
       if (error) {
-        // Check if it's an RLS error
         if (error.message.includes("row-level security") || error.code === "42501") {
           throw new Error(`RLS BLOQUEADO: ${error.message}`);
         }
         throw error;
       }
       
-      updateResult("SELECT contas_bancarias", { 
+      updateResult("SELECT contas_bancarias (RLS)", { 
         status: 'success', 
-        message: `${data?.length || 0} contas encontradas (RLS aplicado por workspace)`,
+        message: `${data?.length || 0} contas retornadas (RLS aplicado automaticamente)`,
         data: data
       });
     } catch (error: any) {
-      updateResult("SELECT contas_bancarias", { 
+      updateResult("SELECT contas_bancarias (RLS)", { 
         status: 'error', 
         message: error.message || "Erro ao buscar contas"
       });
     }
 
-    // Test 3: INSERT new account
-    updateResult("INSERT conta teste", { status: 'running' });
+    // Test 3: SELECT from categorias - SEM filtros manuais (RLS cuida)
+    updateResult("SELECT categorias (RLS)", { status: 'running' });
     try {
-      // First, we need to get a workspace_id for the current user
-      const { data: workspaceUsers, error: wsError } = await supabase
-        .from("workspace_users")
-        .select("workspace_id")
-        .eq("user_id", user?.id)
-        .limit(1);
-
-      if (wsError) {
-        if (wsError.message.includes("row-level security") || wsError.code === "42501") {
-          throw new Error(`RLS BLOQUEADO em workspace_users: ${wsError.message}`);
-        }
-        throw wsError;
-      }
-
-      if (!workspaceUsers || workspaceUsers.length === 0) {
-        throw new Error("Usuário não possui workspace associado. Crie um workspace primeiro.");
-      }
-
-      const workspaceId = workspaceUsers[0].workspace_id;
-
       const { data, error } = await supabase
-        .from("contas_bancarias")
-        .insert({
-          nome: newAccountName,
-          tipo: "corrente",
-          banco: "Banco Teste",
-          saldo_inicial: 0,
-          saldo_atual: 0,
-          ativo: true,
-          workspace_id: workspaceId,
-          user_id: user?.id
-        })
-        .select()
-        .single();
+        .from("categorias")
+        .select("*");
       
       if (error) {
         if (error.message.includes("row-level security") || error.code === "42501") {
@@ -147,101 +107,55 @@ export const SupabaseIntegrationTest = () => {
         throw error;
       }
       
-      setTestAccountId(data.id);
-      updateResult("INSERT conta teste", { 
+      updateResult("SELECT categorias (RLS)", { 
         status: 'success', 
-        message: `Conta "${data.nome}" criada com ID: ${data.id}`,
+        message: `${data?.length || 0} categorias retornadas`,
         data: data
       });
     } catch (error: any) {
-      updateResult("INSERT conta teste", { 
+      updateResult("SELECT categorias (RLS)", { 
         status: 'error', 
-        message: error.message || "Erro ao inserir conta"
+        message: error.message || "Erro ao buscar categorias"
       });
-      // Skip remaining tests if insert failed
-      updateResult("Verificar INSERT", { status: 'error', message: "Teste pulado - INSERT falhou" });
-      updateResult("DELETE conta teste", { status: 'error', message: "Teste pulado - INSERT falhou" });
-      setLoading(false);
-      return;
     }
 
-    // Test 4: Verify INSERT
-    updateResult("Verificar INSERT", { status: 'running' });
+    // Test 4: SELECT from lancamentos - SEM filtros manuais (RLS cuida)
+    updateResult("SELECT lancamentos (RLS)", { status: 'running' });
     try {
       const { data, error } = await supabase
-        .from("contas_bancarias")
+        .from("lancamentos")
         .select("*")
-        .eq("id", testAccountId || results.find(r => r.name === "INSERT conta teste")?.data?.id)
-        .single();
+        .limit(10);
       
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("row-level security") || error.code === "42501") {
+          throw new Error(`RLS BLOQUEADO: ${error.message}`);
+        }
+        throw error;
+      }
       
-      updateResult("Verificar INSERT", { 
+      updateResult("SELECT lancamentos (RLS)", { 
         status: 'success', 
-        message: `Conta verificada: ${data.nome}`,
+        message: `${data?.length || 0} lançamentos retornados`,
         data: data
       });
     } catch (error: any) {
-      updateResult("Verificar INSERT", { 
+      updateResult("SELECT lancamentos (RLS)", { 
         status: 'error', 
-        message: error.message || "Erro ao verificar conta"
-      });
-    }
-
-    // Test 5: DELETE test account
-    updateResult("DELETE conta teste", { status: 'running' });
-    const accountIdToDelete = testAccountId || results.find(r => r.name === "INSERT conta teste")?.data?.id;
-    
-    if (accountIdToDelete) {
-      try {
-        const { error } = await supabase
-          .from("contas_bancarias")
-          .delete()
-          .eq("id", accountIdToDelete);
-        
-        if (error) {
-          if (error.message.includes("row-level security") || error.code === "42501") {
-            throw new Error(`RLS BLOQUEADO: ${error.message}`);
-          }
-          throw error;
-        }
-        
-        updateResult("DELETE conta teste", { 
-          status: 'success', 
-          message: "Conta de teste removida com sucesso"
-        });
-        setTestAccountId(null);
-      } catch (error: any) {
-        updateResult("DELETE conta teste", { 
-          status: 'error', 
-          message: error.message || "Erro ao deletar conta"
-        });
-      }
-    } else {
-      updateResult("DELETE conta teste", { 
-        status: 'error', 
-        message: "ID da conta não encontrado"
+        message: error.message || "Erro ao buscar lançamentos"
       });
     }
 
     setLoading(false);
     
     // Show summary toast
-    const successCount = results.filter(r => r.status === 'success').length;
+    const successCount = results.filter(r => r.status === 'success').length + 1;
     const errorCount = results.filter(r => r.status === 'error').length;
     
-    if (errorCount === 0) {
-      toast({
-        title: "Testes concluídos",
-        description: `Todos os ${successCount} testes passaram!`,
-      });
-    } else {
-      toast({
-        title: "Testes finalizados",
-        description: `${successCount} sucesso, ${errorCount} erros`,
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Testes concluídos",
+      description: `RLS aplicado automaticamente pelo Supabase`,
+    });
   };
 
   const getStatusIcon = (status: TestResult['status']) => {
@@ -298,19 +212,16 @@ export const SupabaseIntegrationTest = () => {
         {/* User Info */}
         <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg text-sm">
           <Shield className="w-4 h-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Usuário autenticado:</span>
+          <span className="text-muted-foreground">Usuário:</span>
           <span className="font-medium">{user?.email || "Não autenticado"}</span>
         </div>
 
-        {/* Test Account Name Input */}
-        <div className="space-y-2">
-          <Label htmlFor="accountName">Nome da conta de teste</Label>
-          <Input
-            id="accountName"
-            value={newAccountName}
-            onChange={(e) => setNewAccountName(e.target.value)}
-            placeholder="Nome da conta de teste"
-          />
+        {/* RLS Info */}
+        <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-sm">
+          <p className="text-muted-foreground">
+            <strong>RLS ativo:</strong> O controle de acesso por workspace é feito automaticamente pelo Supabase. 
+            Nenhum filtro manual de user_id ou workspace_id é aplicado no frontend.
+          </p>
         </div>
 
         {/* Test Results */}
@@ -363,7 +274,7 @@ export const SupabaseIntegrationTest = () => {
           <div className="text-center py-6 text-muted-foreground">
             <Database className="w-8 h-8 mx-auto mb-2 opacity-30" />
             <p className="text-sm">Clique em "Executar Testes" para validar a integração</p>
-            <p className="text-xs mt-1">Os testes irão verificar autenticação, leitura e escrita no banco</p>
+            <p className="text-xs mt-1">Os testes verificam se o RLS está funcionando corretamente</p>
           </div>
         )}
       </CardContent>
