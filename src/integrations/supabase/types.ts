@@ -782,6 +782,10 @@ export type Database = {
     }
     Functions: {
       fn_atualizar_atraso: { Args: never; Returns: undefined }
+      is_user_in_workspace: {
+        Args: { p_workspace_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

@@ -24,8 +24,6 @@ export interface ContaBancaria {
   saldo_atual?: number;
   cor?: string | null;
   ativo: boolean;
-  workspace_id?: string | null;
-  user_id?: string | null;
   created_at?: string;
   updated_at?: string;
 }
