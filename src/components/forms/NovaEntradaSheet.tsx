@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { supabase } from "@/integrations/supabase/client";
 
 interface NovaEntradaSheetProps {
@@ -50,6 +51,7 @@ interface NovaEntradaSheetProps {
 const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: NovaEntradaSheetProps) => {
   const { toast } = useToast();
   const { categorias, contas, fornecedores } = useSupabaseData();
+  const { workspaceId, hasWorkspace } = useWorkspace();
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -104,8 +106,18 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: 
       return;
     }
 
+    if (!hasWorkspace) {
+      toast({
+        title: "Erro",
+        description: "Usuário não pertence a nenhum workspace.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     try {
+      // workspace_id é obtido automaticamente do hook useWorkspace
       const dataToSave = {
         tipo: 'entrada',
         descricao: formData.descricao,
@@ -116,7 +128,8 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: 
         data_vencimento: format(formData.data_vencimento, 'yyyy-MM-dd'),
         numero_documento: formData.numero_documento || null,
         observacoes: formData.observacoes || null,
-        status: editingLancamento?.status || 'pendente'
+        status: editingLancamento?.status || 'pendente',
+        workspace_id: workspaceId
       };
 
       const { error } = editingLancamento

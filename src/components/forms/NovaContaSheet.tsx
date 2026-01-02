@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { supabase } from "@/integrations/supabase/client";
 import { bancosUnicos, bandeirasCartao, tiposConta } from "@/data/bancosBrasileiros";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -38,6 +39,7 @@ interface NovaContaSheetProps {
 
 const NovaContaSheet = ({ open, onOpenChange, onSuccess, editingConta }: NovaContaSheetProps) => {
   const { toast } = useToast();
+  const { workspaceId, hasWorkspace } = useWorkspace();
   const [loading, setLoading] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -90,6 +92,16 @@ const NovaContaSheet = ({ open, onOpenChange, onSuccess, editingConta }: NovaCon
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!hasWorkspace) {
+      toast({
+        title: "Erro",
+        description: "Usuário não pertence a nenhum workspace.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -97,6 +109,7 @@ const NovaContaSheet = ({ open, onOpenChange, onSuccess, editingConta }: NovaCon
         ? `${formData.nome} (${bandeiraSelecionada?.nome || ""})`
         : formData.nome;
 
+      // workspace_id é obtido automaticamente do hook useWorkspace
       const contaData = {
         nome: nomeCompleto,
         tipo: formData.tipo,
@@ -105,6 +118,7 @@ const NovaContaSheet = ({ open, onOpenChange, onSuccess, editingConta }: NovaCon
         numero_conta: formData.numero_conta,
         saldo_inicial: isCartaoCredito ? -formData.limite_credito : formData.saldo_inicial,
         ativo: true,
+        workspace_id: workspaceId,
       };
 
       if (editingConta) {
