@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { RefreshCw, Database, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { useWorkspace } from "@/hooks/useWorkspace";
+import { RefreshCw, Database, CheckCircle, XCircle, Loader2, Building2 } from "lucide-react";
 
 interface ContaBancaria {
   id: string;
@@ -17,6 +18,7 @@ interface ContaBancaria {
 
 const TestePage = () => {
   const { user } = useAuth();
+  const { workspaceId, hasWorkspace, loading: workspaceLoading } = useWorkspace();
   const [contas, setContas] = useState<ContaBancaria[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,9 +61,9 @@ const TestePage = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Teste de RLS</h1>
+            <h1 className="text-2xl font-bold text-foreground">Teste de RLS + Workspace</h1>
             <p className="text-muted-foreground text-sm">
-              Listagem de contas_bancarias sem filtros manuais
+              Listagem de contas_bancarias com workspace automático
             </p>
           </div>
           <Button onClick={fetchContas} disabled={loading} size="sm">
@@ -74,19 +76,22 @@ const TestePage = () => {
           </Button>
         </div>
 
-        {/* Info Card */}
+        {/* Regras do Sistema */}
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <Database className="w-5 h-5 text-primary mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium text-foreground">RLS Ativo</p>
-                <p className="text-muted-foreground">
-                  Esta query não aplica filtros de user_id ou workspace_id.
-                  O Supabase retorna apenas os dados permitidos pelas políticas RLS.
-                </p>
+              <div className="text-sm space-y-2">
+                <p className="font-medium text-foreground">Regras de Acesso Automático</p>
+                <ul className="text-muted-foreground space-y-1 text-xs">
+                  <li>✓ O <code>workspace_id</code> é obtido automaticamente do usuário autenticado</li>
+                  <li>✓ Nenhum filtro manual por <code>user_id</code> ou <code>workspace_id</code> no frontend</li>
+                  <li>✓ O RLS do Supabase garante acesso apenas aos dados do workspace</li>
+                  <li>✓ INSERTs incluem <code>workspace_id</code> automaticamente via hook</li>
+                </ul>
                 <code className="block mt-2 p-2 bg-background rounded text-xs">
-                  supabase.from("contas_bancarias").select("*")
+                  // SELECT: supabase.from("tabela").select("*") - RLS filtra{"\n"}
+                  // INSERT: inclui workspace_id do useWorkspace()
                 </code>
               </div>
             </div>
@@ -95,7 +100,7 @@ const TestePage = () => {
 
         {/* User Info */}
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm">
               {user ? (
                 <>
@@ -106,6 +111,26 @@ const TestePage = () => {
                 <>
                   <XCircle className="w-4 h-4 text-saida" />
                   <span className="text-saida">Usuário não autenticado</span>
+                </>
+              )}
+            </div>
+
+            {/* Workspace Info */}
+            <div className="flex items-center gap-2 text-sm">
+              {workspaceLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  <span className="text-muted-foreground">Carregando workspace...</span>
+                </>
+              ) : hasWorkspace ? (
+                <>
+                  <Building2 className="w-4 h-4 text-entrada" />
+                  <span>Workspace ID: <code className="text-xs bg-muted px-1 py-0.5 rounded">{workspaceId}</code></span>
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4 text-saida" />
+                  <span className="text-saida">Usuário não pertence a nenhum workspace</span>
                 </>
               )}
             </div>

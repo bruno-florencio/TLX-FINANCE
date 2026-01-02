@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useWorkspace } from '@/hooks/useWorkspace';
 
 export interface Lancamento {
   id: string;
@@ -39,14 +40,21 @@ export interface NewLancamento {
   total_parcelas?: number | null;
 }
 
+/**
+ * Hook para gerenciar lançamentos (entradas e saídas).
+ * O workspace_id é obtido automaticamente do hook useWorkspace.
+ * NÃO aplica filtros manuais - confia inteiramente no RLS do Supabase.
+ */
 export const useLancamentos = (tipo?: 'entrada' | 'saida') => {
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { workspaceId, hasWorkspace } = useWorkspace();
 
   const fetchLancamentos = async () => {
     try {
       setLoading(true);
+      // O RLS cuida automaticamente do filtro por workspace
       let query = supabase.from('lancamentos').select('*');
       
       if (tipo) {
@@ -79,10 +87,20 @@ export const useLancamentos = (tipo?: 'entrada' | 'saida') => {
   };
 
   const createLancamento = async (newLancamento: NewLancamento) => {
+    if (!hasWorkspace) {
+      toast({
+        title: "Erro",
+        description: "Usuário não pertence a nenhum workspace.",
+        variant: "destructive"
+      });
+      return null;
+    }
+
     try {
+      // workspace_id é obtido automaticamente do hook useWorkspace
       const { data, error } = await supabase
         .from('lancamentos')
-        .insert([newLancamento as any])
+        .insert([{ ...newLancamento, workspace_id: workspaceId } as any])
         .select()
         .single();
 

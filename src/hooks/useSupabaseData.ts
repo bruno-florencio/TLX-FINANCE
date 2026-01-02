@@ -50,6 +50,11 @@ export interface Fornecedor {
   updated_at?: string;
 }
 
+/**
+ * Hook para buscar dados do Supabase.
+ * NÃO aplica filtros manuais - confia inteiramente no RLS do Supabase.
+ * O controle de acesso por workspace é feito automaticamente via RLS.
+ */
 export const useSupabaseData = () => {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [contas, setContas] = useState<ContaBancaria[]>([]);
@@ -63,6 +68,7 @@ export const useSupabaseData = () => {
       setLoading(true);
       
       // Buscar todas as tabelas em paralelo
+      // O RLS cuida automaticamente do filtro por workspace
       const [categoriasRes, contasRes, centrosCustoRes, fornecedoresRes] = await Promise.all([
         supabase.from('categorias').select('*').order('nome'),
         supabase.from('contas_bancarias').select('*').eq('ativo', true).order('nome'),
