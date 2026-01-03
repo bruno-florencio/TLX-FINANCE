@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Cadastro from "./pages/Cadastro";
 import NotFound from "./pages/NotFound";
 import TestePage from "./pages/TestePage";
 
@@ -21,10 +22,11 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/cadastro" element={<Cadastro />} />
             <Route 
               path="/" 
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireCompleteRegistration>
                   <Index />
                 </ProtectedRoute>
               } 
