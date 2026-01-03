@@ -685,6 +685,65 @@ export type Database = {
           },
         ]
       }
+      users: {
+        Row: {
+          auth_user_id: string
+          birth_date: string | null
+          created_at: string
+          document_hash: string
+          document_type: Database["public"]["Enums"]["document_type"]
+          email: string
+          id: string
+          name: string
+          phone: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status: Database["public"]["Enums"]["user_status"]
+          trade_name: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auth_user_id: string
+          birth_date?: string | null
+          created_at?: string
+          document_hash: string
+          document_type: Database["public"]["Enums"]["document_type"]
+          email: string
+          id?: string
+          name: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["user_status"]
+          trade_name?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auth_user_id?: string
+          birth_date?: string | null
+          created_at?: string
+          document_hash?: string
+          document_type?: Database["public"]["Enums"]["document_type"]
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["user_status"]
+          trade_name?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_workspace_fk"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_invites: {
         Row: {
           accepted: boolean | null
@@ -758,18 +817,21 @@ export type Database = {
       workspaces: {
         Row: {
           created_at: string | null
+          created_by_user_id: string | null
           id: string
           nome: string
           owner_id: string | null
         }
         Insert: {
           created_at?: string | null
+          created_by_user_id?: string | null
           id?: string
           nome: string
           owner_id?: string | null
         }
         Update: {
           created_at?: string | null
+          created_by_user_id?: string | null
           id?: string
           nome?: string
           owner_id?: string | null
@@ -782,13 +844,41 @@ export type Database = {
     }
     Functions: {
       fn_atualizar_atraso: { Args: never; Returns: undefined }
+      get_internal_user_id: { Args: never; Returns: string }
+      get_user_role: {
+        Args: { p_auth_user_id: string; p_workspace_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_user_workspace_id: { Args: never; Returns: string }
+      has_complete_registration: { Args: never; Returns: boolean }
+      hash_document: { Args: { p_document: string }; Returns: string }
+      is_admin_or_master: {
+        Args: { p_workspace_id?: string }
+        Returns: boolean
+      }
+      is_master: { Args: { p_workspace_id?: string }; Returns: boolean }
       is_user_in_workspace: {
         Args: { p_workspace_id: string }
         Returns: boolean
       }
+      register_first_user: {
+        Args: {
+          p_birth_date?: string
+          p_document_type: Database["public"]["Enums"]["document_type"]
+          p_document_value: string
+          p_email: string
+          p_name: string
+          p_phone: string
+          p_trade_name?: string
+          p_workspace_name?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "master" | "admin" | "user"
+      document_type: "cpf" | "cnpj"
+      user_status: "active" | "inactive" | "pending" | "blocked"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -915,6 +1005,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["master", "admin", "user"],
+      document_type: ["cpf", "cnpj"],
+      user_status: ["active", "inactive", "pending", "blocked"],
+    },
   },
 } as const
