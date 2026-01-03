@@ -4,12 +4,12 @@ import { useAuth } from '@/hooks/useAuth';
 
 interface Workspace {
   workspace_id: string;
-  role: string | null;
+  role: 'master' | 'admin' | 'user';
 }
 
 /**
  * Hook para obter o workspace_id do usuário autenticado automaticamente.
- * O workspace_id é obtido da tabela workspace_users com base no auth.uid().
+ * O workspace_id é obtido da tabela users (usuários internos) com base no auth.uid().
  * 
  * REGRA: O workspace_id NUNCA deve ser informado manualmente pelo usuário.
  * Todas as operações de INSERT/UPDATE/SELECT/DELETE devem usar este hook.
@@ -34,23 +34,46 @@ export const useWorkspace = () => {
         setLoading(true);
         setError(null);
 
-        // Buscar todos os workspaces do usuário
+        // Buscar workspace do usuário interno
         const { data, error: fetchError } = await supabase
-          .from('workspace_users')
+          .from('users')
           .select('workspace_id, role')
-          .eq('user_id', user.id);
+          .eq('auth_user_id', user.id)
+          .eq('status', 'active');
 
         if (fetchError) {
           throw fetchError;
         }
 
         if (data && data.length > 0) {
-          setWorkspaces(data);
-          // Usar o primeiro workspace até implementar seletor
-          setWorkspaceId(data[0].workspace_id);
+          const workspaceData = data.map(d => ({
+            workspace_id: d.workspace_id,
+            role: d.role as 'master' | 'admin' | 'user'
+          }));
+          setWorkspaces(workspaceData);
+          setWorkspaceId(workspaceData[0].workspace_id);
         } else {
-          setWorkspaceId(null);
-          setWorkspaces([]);
+          // Fallback: tentar buscar da tabela workspace_users (compatibilidade)
+          const { data: legacyData, error: legacyError } = await supabase
+            .from('workspace_users')
+            .select('workspace_id, role')
+            .eq('user_id', user.id);
+
+          if (legacyError) {
+            throw legacyError;
+          }
+
+          if (legacyData && legacyData.length > 0) {
+            const workspaceData = legacyData.map(d => ({
+              workspace_id: d.workspace_id,
+              role: (d.role === 'owner' ? 'master' : d.role || 'user') as 'master' | 'admin' | 'user'
+            }));
+            setWorkspaces(workspaceData);
+            setWorkspaceId(workspaceData[0].workspace_id);
+          } else {
+            setWorkspaceId(null);
+            setWorkspaces([]);
+          }
         }
       } catch (err: any) {
         console.error('Erro ao buscar workspace:', err);
@@ -74,12 +97,26 @@ export const useWorkspace = () => {
     }
   };
 
+  /**
+   * Verifica se o usuário é master do workspace atual
+   */
+  const isMaster = workspaces.find(w => w.workspace_id === workspaceId)?.role === 'master';
+
+  /**
+   * Verifica se o usuário é admin ou master do workspace atual
+   */
+  const isAdminOrMaster = ['master', 'admin'].includes(
+    workspaces.find(w => w.workspace_id === workspaceId)?.role || ''
+  );
+
   return {
     workspaceId,
     workspaces,
     loading,
     error,
     selectWorkspace,
-    hasWorkspace: !!workspaceId
+    hasWorkspace: !!workspaceId,
+    isMaster,
+    isAdminOrMaster
   };
 };

@@ -194,7 +194,7 @@ const Auth = () => {
             </Button>
           </form>
           
-          <div className="mt-4 text-center">
+          <div className="mt-4 text-center space-y-2">
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
@@ -205,6 +205,16 @@ const Auth = () => {
                 : "Já tem conta? Fazer login"
               }
             </button>
+            
+            <div className="pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => navigate('/cadastro')}
+                className="text-sm text-muted-foreground hover:text-primary"
+              >
+                Primeiro acesso? <span className="underline">Cadastre-se aqui</span>
+              </button>
+            </div>
           </div>
         </CardContent>
       </Card>
