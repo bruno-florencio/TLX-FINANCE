@@ -1,42 +1,33 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useInternalUser } from "@/hooks/useInternalUser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogIn, UserPlus, AlertCircle } from "lucide-react";
+import { Loader2, LogIn, AlertCircle, UserPlus } from "lucide-react";
 import { z } from "zod";
 
 const emailSchema = z.string().email("Email inválido");
 const passwordSchema = z.string().min(6, "Senha deve ter pelo menos 6 caracteres");
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   
-  const { signIn, signUp, user, loading: authLoading } = useAuth();
-  const { hasCompleteRegistration, loading: userLoading } = useInternalUser();
+  const { signIn, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Redirect if already authenticated - only after checking internal user
+  // Redirect if already authenticated - go directly to dashboard
   useEffect(() => {
-    if (authLoading || userLoading) return;
-    
-    if (user) {
-      if (hasCompleteRegistration) {
-        navigate("/", { replace: true });
-      } else {
-        navigate("/cadastro", { replace: true });
-      }
+    if (!authLoading && user) {
+      navigate("/", { replace: true });
     }
-  }, [user, authLoading, userLoading, hasCompleteRegistration, navigate]);
+  }, [user, authLoading, navigate]);
 
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
@@ -69,44 +60,24 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      if (isLogin) {
-        const { error } = await signIn(email, password);
-        if (error) {
-          let message = "Erro ao fazer login";
-          if (error.message.includes("Invalid login credentials")) {
-            message = "Email ou senha incorretos";
-          } else if (error.message.includes("Email not confirmed")) {
-            message = "Por favor, confirme seu email antes de fazer login";
-          }
-          toast({
-            title: "Erro de autenticação",
-            description: message,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Login realizado",
-            description: "Bem-vindo ao sistema!",
-          });
+      const { error } = await signIn(email, password);
+      if (error) {
+        let message = "Erro ao fazer login";
+        if (error.message.includes("Invalid login credentials")) {
+          message = "Email ou senha incorretos";
+        } else if (error.message.includes("Email not confirmed")) {
+          message = "Por favor, confirme seu email antes de fazer login";
         }
+        toast({
+          title: "Erro de autenticação",
+          description: message,
+          variant: "destructive",
+        });
       } else {
-        const { error } = await signUp(email, password);
-        if (error) {
-          let message = "Erro ao criar conta";
-          if (error.message.includes("already registered")) {
-            message = "Este email já está cadastrado";
-          }
-          toast({
-            title: "Erro ao criar conta",
-            description: message,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Conta criada",
-            description: "Verifique seu email para confirmar o cadastro.",
-          });
-        }
+        toast({
+          title: "Login realizado",
+          description: "Bem-vindo ao sistema!",
+        });
       }
     } catch (error: any) {
       toast({
@@ -119,7 +90,7 @@ const Auth = () => {
     }
   };
 
-  if (authLoading || userLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -145,14 +116,9 @@ const Auth = () => {
               <span className="text-primary-foreground font-bold text-xl">T</span>
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">
-            {isLogin ? "Entrar" : "Criar Conta"}
-          </CardTitle>
+          <CardTitle className="text-2xl font-bold">Entrar</CardTitle>
           <CardDescription>
-            {isLogin 
-              ? "Acesse sua conta para gerenciar suas finanças" 
-              : "Crie sua conta para começar a usar o sistema"
-            }
+            Acesse sua conta para gerenciar suas finanças
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -202,36 +168,26 @@ const Auth = () => {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : isLogin ? (
-                <LogIn className="w-4 h-4 mr-2" />
               ) : (
-                <UserPlus className="w-4 h-4 mr-2" />
+                <LogIn className="w-4 h-4 mr-2" />
               )}
-              {isLogin ? "Entrar" : "Criar Conta"}
+              Entrar
             </Button>
           </form>
           
-          <div className="mt-4 text-center space-y-2">
-            <button
+          <div className="mt-6 pt-4 border-t">
+            <p className="text-center text-sm text-muted-foreground mb-3">
+              Primeiro acesso ou não tem conta?
+            </p>
+            <Button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-primary hover:underline"
+              variant="outline"
+              className="w-full"
+              onClick={() => navigate('/cadastro')}
             >
-              {isLogin 
-                ? "Não tem conta? Criar agora" 
-                : "Já tem conta? Fazer login"
-              }
-            </button>
-            
-            <div className="pt-2 border-t">
-              <button
-                type="button"
-                onClick={() => navigate('/cadastro')}
-                className="text-sm text-muted-foreground hover:text-primary"
-              >
-                Primeiro acesso? <span className="underline">Cadastre-se aqui</span>
-              </button>
-            </div>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Criar conta e workspace
+            </Button>
           </div>
         </CardContent>
       </Card>

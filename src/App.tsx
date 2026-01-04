@@ -21,12 +21,15 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            {/* Rotas públicas */}
             <Route path="/auth" element={<Auth />} />
             <Route path="/cadastro" element={<Cadastro />} />
+            
+            {/* Dashboard - apenas requer autenticação, NÃO requer cadastro completo */}
             <Route 
               path="/" 
               element={
-                <ProtectedRoute requireCompleteRegistration>
+                <ProtectedRoute>
                   <Index />
                 </ProtectedRoute>
               } 
