@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useInternalUser } from "@/hooks/useInternalUser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,15 +21,22 @@ const Auth = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   
   const { signIn, signUp, user, loading: authLoading } = useAuth();
+  const { hasCompleteRegistration, loading: userLoading } = useInternalUser();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated - only after checking internal user
   useEffect(() => {
-    if (user && !authLoading) {
-      navigate("/", { replace: true });
+    if (authLoading || userLoading) return;
+    
+    if (user) {
+      if (hasCompleteRegistration) {
+        navigate("/", { replace: true });
+      } else {
+        navigate("/cadastro", { replace: true });
+      }
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, userLoading, hasCompleteRegistration, navigate]);
 
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
@@ -111,7 +119,16 @@ const Auth = () => {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || userLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Não renderizar form se já autenticado (vai redirecionar)
+  if (user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
