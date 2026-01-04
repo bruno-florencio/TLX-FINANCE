@@ -51,7 +51,7 @@ type Step = 'auth' | 'profile' | 'validating' | 'success';
 export default function Cadastro() {
   const navigate = useNavigate();
   const { user, signUp } = useAuth();
-  const { hasCompleteRegistration, loading: userLoading } = useInternalUser();
+  const { hasCompleteRegistration, loading: userLoading, refetch } = useInternalUser();
   
   const [step, setStep] = useState<Step>('auth');
   const [loading, setLoading] = useState(false);
@@ -239,10 +239,12 @@ export default function Cadastro() {
       setStep('success');
       toast.success('Cadastro realizado com sucesso!');
       
-      // Aguardar e redirecionar
+      // Recarregar dados do usuário e redirecionar forçando reload completo
+      await refetch();
+      
       setTimeout(() => {
-        navigate('/');
-      }, 2000);
+        window.location.href = '/';
+      }, 1500);
       
     } catch (err: any) {
       console.error('Registration error:', err);
