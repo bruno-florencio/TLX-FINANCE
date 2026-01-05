@@ -857,6 +857,7 @@ export type Database = {
         Returns: boolean
       }
       is_master: { Args: { p_workspace_id?: string }; Returns: boolean }
+      is_master_email: { Args: never; Returns: boolean }
       is_user_in_workspace: {
         Args: { p_workspace_id: string }
         Returns: boolean
