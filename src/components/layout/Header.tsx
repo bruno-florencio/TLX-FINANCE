@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useInternalUser } from "@/hooks/useInternalUser";
 import { 
   Home, 
   TrendingUp, 
@@ -11,7 +13,8 @@ import {
   X,
   Receipt,
   LogOut,
-  User
+  User,
+  UserCircle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -28,11 +31,17 @@ interface HeaderProps {
 
 const Header = ({ currentTab, onTabChange }: HeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { internalUser } = useInternalUser();
 
   const handleSignOut = async () => {
     await signOut();
+    navigate("/auth", { replace: true });
   };
+
+  const displayName = internalUser?.name || user?.email || "Usuário";
+  const initials = displayName.charAt(0).toUpperCase();
 
   const tabs = [
     { id: "home", label: "Home", icon: Home },
@@ -85,19 +94,24 @@ const Header = ({ currentTab, onTabChange }: HeaderProps) => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="hidden md:flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                <div className="w-6 h-6 bg-muted rounded-full flex items-center justify-center">
-                  <User className="w-3.5 h-3.5" />
+                <div className="w-7 h-7 bg-primary rounded-full flex items-center justify-center">
+                  <span className="text-xs font-semibold text-primary-foreground">{initials}</span>
                 </div>
                 <span className="max-w-[120px] truncate text-xs">
-                  {user?.email}
+                  {displayName}
                 </span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <div className="px-2 py-1.5">
-                <p className="text-xs text-muted-foreground">Logado como</p>
-                <p className="text-sm font-medium truncate">{user?.email}</p>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="px-2 py-2">
+                <p className="text-sm font-medium truncate">{displayName}</p>
+                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
               </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate("/perfil")} className="cursor-pointer">
+                <UserCircle className="w-4 h-4 mr-2" />
+                Meu Perfil
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
                 <LogOut className="w-4 h-4 mr-2" />
@@ -144,11 +158,22 @@ const Header = ({ currentTab, onTabChange }: HeaderProps) => {
                 );
               })}
               
-              {/* Mobile User Info & Logout */}
+              {/* Mobile User Info & Actions */}
               <div className="border-t border-border/40 mt-2 pt-2">
-                <div className="px-3 py-2 text-xs text-muted-foreground">
-                  {user?.email}
+                <div className="px-3 py-2">
+                  <p className="text-sm font-medium">{displayName}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </div>
+                <button
+                  onClick={() => {
+                    navigate("/perfil");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium w-full text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <UserCircle className="w-4 h-4" />
+                  <span>Meu Perfil</span>
+                </button>
                 <button
                   onClick={handleSignOut}
                   className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium w-full text-left text-destructive hover:bg-destructive/10 transition-colors"
