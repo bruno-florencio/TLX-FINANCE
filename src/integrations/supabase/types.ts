@@ -514,6 +514,30 @@ export type Database = {
           },
         ]
       }
+      master_features: {
+        Row: {
+          all_features: boolean | null
+          created_at: string | null
+          email: string
+          max_users: number | null
+          max_workspaces: number | null
+        }
+        Insert: {
+          all_features?: boolean | null
+          created_at?: string | null
+          email: string
+          max_users?: number | null
+          max_workspaces?: number | null
+        }
+        Update: {
+          all_features?: boolean | null
+          created_at?: string | null
+          email?: string
+          max_users?: number | null
+          max_workspaces?: number | null
+        }
+        Relationships: []
+      }
       pagamentos: {
         Row: {
           conta_id: string | null
