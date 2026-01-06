@@ -16,7 +16,7 @@ const Perfil = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { internalUser, loading: userLoading, refetch: refetchUser } = useInternalUser();
-  const { workspaceId, loading: workspaceLoading } = useWorkspace();
+  const { workspaceId, workspace, loading: workspaceLoading, refetch: refetchWorkspace } = useWorkspace();
   
   const [saving, setSaving] = useState(false);
   const [workspaceName, setWorkspaceName] = useState("");
@@ -30,23 +30,13 @@ const Perfil = () => {
     tradeName: "",
   });
 
-  // Load workspace name
+
+  // Load workspace name from fetched workspace
   useEffect(() => {
-    const loadWorkspace = async () => {
-      if (workspaceId) {
-        const { data } = await supabase
-          .from("workspaces")
-          .select("nome")
-          .eq("id", workspaceId)
-          .single();
-        
-        if (data) {
-          setWorkspaceName(data.nome);
-        }
-      }
-    };
-    loadWorkspace();
-  }, [workspaceId]);
+    if (workspace?.nome) {
+      setWorkspaceName(workspace.nome);
+    }
+  }, [workspace]);
 
   // Load user data into form
   useEffect(() => {
