@@ -773,27 +773,36 @@ export type Database = {
           accepted: boolean | null
           created_at: string | null
           email: string | null
+          expires_at: string | null
           id: string
           invited_by: string | null
           role: string | null
+          status: string | null
+          token: string | null
           workspace_id: string | null
         }
         Insert: {
           accepted?: boolean | null
           created_at?: string | null
           email?: string | null
+          expires_at?: string | null
           id?: string
           invited_by?: string | null
           role?: string | null
+          status?: string | null
+          token?: string | null
           workspace_id?: string | null
         }
         Update: {
           accepted?: boolean | null
           created_at?: string | null
           email?: string | null
+          expires_at?: string | null
           id?: string
           invited_by?: string | null
           role?: string | null
+          status?: string | null
+          token?: string | null
           workspace_id?: string | null
         }
         Relationships: [
@@ -867,8 +876,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invite: {
+        Args: {
+          p_auth_user_id: string
+          p_document_type: Database["public"]["Enums"]["document_type"]
+          p_document_value: string
+          p_email: string
+          p_name: string
+          p_phone: string
+          p_token: string
+        }
+        Returns: Json
+      }
       fn_atualizar_atraso: { Args: never; Returns: undefined }
+      generate_invite_token: { Args: never; Returns: string }
       get_internal_user_id: { Args: never; Returns: string }
+      get_invite_by_token: { Args: { p_token: string }; Returns: Json }
       get_user_role: {
         Args: { p_auth_user_id: string; p_workspace_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
