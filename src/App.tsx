@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Cadastro from "./pages/Cadastro";
 import Perfil from "./pages/Perfil";
+import AceitarConvite from "./pages/AceitarConvite";
 import NotFound from "./pages/NotFound";
 import TestePage from "./pages/TestePage";
 
@@ -25,6 +26,7 @@ const App = () => (
             {/* Rotas públicas */}
             <Route path="/auth" element={<Auth />} />
             <Route path="/cadastro" element={<Cadastro />} />
+            <Route path="/aceitar-convite" element={<AceitarConvite />} />
             
             {/* Dashboard - apenas requer autenticação */}
             <Route 

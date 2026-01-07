@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowLeft, Loader2, Save, User, Building2 } from "lucide-react";
 import { validateCPF, validateCNPJ, formatCPF, formatCNPJ, formatPhone } from "@/utils/documentValidation";
+import EquipeSection from "@/components/perfil/EquipeSection";
 
 const Perfil = () => {
   const navigate = useNavigate();
@@ -379,6 +380,9 @@ const Perfil = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Equipe Section - Only for workspace owners */}
+          {workspaceId && <EquipeSection />}
 
           {/* Save Button */}
           <Button 
