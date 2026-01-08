@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+interface Cliente {
+  id: string;
+  nome: string;
+  contato: string | null;
+  workspace_id: string;
+}
+
 const ConfiguracaoTab = () => {
   const { toast } = useToast();
   const { contas, categorias, centrosCusto, fornecedores, loading, refetch } = useSupabaseData();
@@ -39,13 +46,29 @@ const ConfiguracaoTab = () => {
   const [editingConta, setEditingConta] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: string; id: string; nome: string } | null>(null);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [loadingClientes, setLoadingClientes] = useState(true);
 
-  // Mock data para demonstração (fornecedores e clientes)
-  const [clientes] = useState([
-    { id: "1", nome: "Empresa Cliente A", cnpj: "44.555.666/0001-77", contato: "financeiro@clientea.com" },
-    { id: "2", nome: "Cliente B Ltda", cnpj: "33.444.555/0001-88", contato: "pagamentos@clienteb.com" },
-    { id: "3", nome: "Corporação C", cnpj: "22.333.444/0001-99", contato: "contas@corporacaoc.com" }
-  ]);
+  useEffect(() => {
+    fetchClientes();
+  }, []);
+
+  const fetchClientes = async () => {
+    try {
+      setLoadingClientes(true);
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("*")
+        .order("nome");
+
+      if (error) throw error;
+      setClientes(data || []);
+    } catch (error) {
+      console.error("Erro ao buscar clientes:", error);
+    } finally {
+      setLoadingClientes(false);
+    }
+  };
 
   const categoriasEntrada = categorias.filter(c => c.tipo === 'entrada');
   const categoriasSaida = categorias.filter(c => c.tipo === 'saida');
@@ -85,23 +108,35 @@ const ConfiguracaoTab = () => {
         case "Fornecedor":
           tableName = "fornecedores";
           break;
+        case "Cliente":
+          tableName = "clientes";
+          break;
         default:
           return;
       }
 
-      const { error } = await supabase
-        .from(tableName as any)
-        .update({ ativo: false } as any)
-        .eq("id", itemToDelete.id);
+      if (itemToDelete.type === "Cliente") {
+        const { error } = await supabase
+          .from("clientes")
+          .delete()
+          .eq("id", itemToDelete.id);
 
-      if (error) throw error;
+        if (error) throw error;
+        fetchClientes();
+      } else {
+        const { error } = await supabase
+          .from(tableName as any)
+          .update({ ativo: false } as any)
+          .eq("id", itemToDelete.id);
+
+        if (error) throw error;
+        refetch();
+      }
 
       toast({
         title: `${itemToDelete.type} Excluído`,
         description: `${itemToDelete.nome} foi removido com sucesso.`,
       });
-
-      refetch();
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -161,7 +196,7 @@ const ConfiguracaoTab = () => {
             Gerencie fornecedores, clientes, contas bancárias e categorias
           </p>
         </div>
-        <Button variant="outline" onClick={refetch} disabled={loading}>
+        <Button variant="outline" onClick={() => { refetch(); fetchClientes(); }} disabled={loading}>
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           Atualizar
         </Button>
@@ -297,40 +332,44 @@ const ConfiguracaoTab = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {fornecedores.map((fornecedor) => (
-              <div key={fornecedor.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
-                <div className="flex-1">
-                  <p className="font-medium">{fornecedor.nome}</p>
-                  {fornecedor.documento && (
-                    <p className="text-sm text-muted-foreground">Documento: {fornecedor.documento}</p>
-                  )}
-                  {fornecedor.email && (
-                    <p className="text-sm text-muted-foreground">Contato: {fornecedor.email}</p>
-                  )}
+          {fornecedores.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Building className="w-10 h-10 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Nenhum fornecedor cadastrado</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {fornecedores.map((fornecedor) => (
+                <div key={fornecedor.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
+                  <div className="flex-1">
+                    <p className="font-medium">{fornecedor.nome}</p>
+                    {fornecedor.documento && (
+                      <p className="text-sm text-muted-foreground">Documento: {fornecedor.documento}</p>
+                    )}
+                    {fornecedor.email && (
+                      <p className="text-sm text-muted-foreground">Contato: {fornecedor.email}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleEdit("Fornecedor", fornecedor)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleDeleteClick("Fornecedor", fornecedor.id, fornecedor.nome)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleEdit("Fornecedor", fornecedor)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleDeleteClick("Fornecedor", fornecedor.id, fornecedor.nome)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-            {fornecedores.length === 0 && (
-              <p className="text-center text-muted-foreground py-4">Nenhum fornecedor cadastrado</p>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -341,6 +380,7 @@ const ConfiguracaoTab = () => {
             <div className="flex items-center space-x-2">
               <Users className="w-5 h-5" />
               <span>Clientes</span>
+              <Badge variant="secondary" className="ml-2">{clientes.length}</Badge>
             </div>
             <Button onClick={() => handleAdd("Cliente")} size="sm">
               <Plus className="w-4 h-4 mr-2" />
@@ -349,33 +389,45 @@ const ConfiguracaoTab = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {clientes.map((cliente) => (
-              <div key={cliente.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
-                <div className="flex-1">
-                  <p className="font-medium">{cliente.nome}</p>
-                  <p className="text-sm text-muted-foreground">CNPJ: {cliente.cnpj}</p>
-                  <p className="text-sm text-muted-foreground">Contato: {cliente.contato}</p>
+          {loadingClientes ? (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : clientes.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Nenhum cliente cadastrado</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {clientes.map((cliente) => (
+                <div key={cliente.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
+                  <div className="flex-1">
+                    <p className="font-medium">{cliente.nome}</p>
+                    {cliente.contato && (
+                      <p className="text-sm text-muted-foreground">Contato: {cliente.contato}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleEdit("Cliente", cliente)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleDeleteClick("Cliente", cliente.id, cliente.nome)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleEdit("Cliente", cliente)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleDeleteClick("Cliente", cliente.id, cliente.nome)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -397,35 +449,39 @@ const ConfiguracaoTab = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {categoriasEntrada.map((categoria) => (
-                <div key={categoria.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-4 h-4 rounded-full bg-green-500"></div>
-                    <span className="font-medium">{categoria.nome}</span>
+            {categoriasEntrada.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Tags className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Nenhuma categoria de entrada</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {categoriasEntrada.map((categoria) => (
+                  <div key={categoria.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-4 h-4 rounded-full bg-green-500"></div>
+                      <span className="font-medium">{categoria.nome}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleEdit("Categoria", categoria)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleDeleteClick("Categoria", categoria.id, categoria.nome)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleEdit("Categoria", categoria)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDeleteClick("Categoria", categoria.id, categoria.nome)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {categoriasEntrada.length === 0 && (
-                <p className="text-center text-muted-foreground py-4">Nenhuma categoria de entrada</p>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -445,35 +501,39 @@ const ConfiguracaoTab = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {categoriasSaida.map((categoria) => (
-                <div key={categoria.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-4 h-4 rounded-full bg-red-500"></div>
-                    <span className="font-medium">{categoria.nome}</span>
+            {categoriasSaida.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Tags className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Nenhuma categoria de saída</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {categoriasSaida.map((categoria) => (
+                  <div key={categoria.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-4 h-4 rounded-full bg-red-500"></div>
+                      <span className="font-medium">{categoria.nome}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleEdit("Categoria", categoria)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleDeleteClick("Categoria", categoria.id, categoria.nome)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleEdit("Categoria", categoria)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDeleteClick("Categoria", categoria.id, categoria.nome)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {categoriasSaida.length === 0 && (
-                <p className="text-center text-muted-foreground py-4">Nenhuma categoria de saída</p>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -494,107 +554,75 @@ const ConfiguracaoTab = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {centrosCusto.map((centro) => (
-              <div key={centro.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
-                <div className="flex-1">
+          {centrosCusto.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Target className="w-10 h-10 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Nenhum centro de custo cadastrado</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {centrosCusto.map((centro) => (
+                <div key={centro.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
                   <div className="flex items-center space-x-3">
-                    <div className="w-4 h-4 rounded-full bg-blue-500"></div>
+                    <Target className="w-4 h-4 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">{centro.nome}</p>
+                      <span className="font-medium">{centro.nome}</span>
                       {centro.descricao && (
-                        <p className="text-sm text-muted-foreground">{centro.descricao}</p>
+                        <p className="text-xs text-muted-foreground">{centro.descricao}</p>
                       )}
                     </div>
                   </div>
+                  <div className="flex items-center space-x-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleEdit("Centro de Custo", centro)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleDeleteClick("Centro de Custo", centro.id, centro.nome)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleEdit("Centro de Custo", centro)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleDeleteClick("Centro de Custo", centro.id, centro.nome)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-            {centrosCusto.length === 0 && (
-              <p className="text-center text-muted-foreground py-4">Nenhum centro de custo cadastrado</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Configurações Futuras */}
-      <Card className="h-molina-card">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Settings className="w-5 h-5" />
-            <span>Configurações Avançadas (Futuras)</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="p-4 bg-muted/20 rounded-lg border border-border">
-              <h4 className="font-medium text-sm mb-2">🔐 Usuários e Permissões</h4>
-              <p className="text-xs text-muted-foreground">Controle de acesso multi-usuário</p>
+              ))}
             </div>
-            <div className="p-4 bg-muted/20 rounded-lg border border-border">
-              <h4 className="font-medium text-sm mb-2">🔔 Notificações</h4>
-              <p className="text-xs text-muted-foreground">Alertas de vencimento e lembretes</p>
-            </div>
-            <div className="p-4 bg-muted/20 rounded-lg border border-border">
-              <h4 className="font-medium text-sm mb-2">🏦 Integração Bancária</h4>
-              <p className="text-xs text-muted-foreground">Configuração de APIs dos bancos</p>
-            </div>
-            <div className="p-4 bg-muted/20 rounded-lg border border-border">
-              <h4 className="font-medium text-sm mb-2">📊 Backup Automático</h4>
-              <p className="text-xs text-muted-foreground">Configuração de backups regulares</p>
-            </div>
-            <div className="p-4 bg-muted/20 rounded-lg border border-border">
-              <h4 className="font-medium text-sm mb-2">🎨 Personalização</h4>
-              <p className="text-xs text-muted-foreground">Temas e layout personalizados</p>
-            </div>
-            <div className="p-4 bg-muted/20 rounded-lg border border-border">
-              <h4 className="font-medium text-sm mb-2">📱 Configurações Mobile</h4>
-              <p className="text-xs text-muted-foreground">Sincronização com app mobile</p>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Sheet para Nova Conta */}
-      <NovaContaSheet
-        open={novaContaOpen}
-        onOpenChange={setNovaContaOpen}
-        onSuccess={refetch}
+      <NovaContaSheet 
+        open={novaContaOpen} 
+        onOpenChange={(open) => {
+          setNovaContaOpen(open);
+          if (!open) setEditingConta(null);
+        }}
         editingConta={editingConta}
+        onSuccess={() => {
+          refetch();
+          setNovaContaOpen(false);
+          setEditingConta(null);
+        }}
       />
 
       {/* Dialog de Confirmação de Exclusão */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-background border-border">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir "{itemToDelete?.nome}"?
+              Tem certeza que deseja excluir {itemToDelete?.type.toLowerCase()} "{itemToDelete?.nome}"? 
               Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
