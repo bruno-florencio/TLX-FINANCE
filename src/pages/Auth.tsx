@@ -209,7 +209,10 @@ const Auth = () => {
     setLoading(true);
     
     try {
+      console.log('[CADASTRO] Iniciando cadastro...');
+      
       // Step 1: Validate document via edge function
+      console.log('[CADASTRO] Step 1: Validando documento...');
       const { data: validationData, error: validationError } = await supabase.functions.invoke('validate-document', {
         body: {
           documentType: formData.documentType,
@@ -219,10 +222,12 @@ const Auth = () => {
       });
       
       if (validationError) {
+        console.error('[CADASTRO] Erro validação documento:', validationError);
         throw new Error('Erro ao validar documento. Tente novamente.');
       }
       
       if (!validationData?.valid) {
+        console.error('[CADASTRO] Documento inválido:', validationData);
         toast({ 
           title: "Documento inválido", 
           description: validationData?.error || 'Verifique os dados informados.', 
@@ -233,7 +238,10 @@ const Auth = () => {
         return;
       }
       
+      console.log('[CADASTRO] Documento válido!');
+      
       // Step 2: Create auth user
+      console.log('[CADASTRO] Step 2: Criando usuário auth...');
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -243,6 +251,7 @@ const Auth = () => {
       });
       
       if (authError) {
+        console.error('[CADASTRO] Erro auth.signUp:', authError);
         if (authError.message.includes("already registered")) {
           toast({ 
             title: "Email já cadastrado", 
@@ -260,14 +269,49 @@ const Auth = () => {
       }
       
       if (!authData.user) {
+        console.error('[CADASTRO] auth.signUp não retornou user');
         toast({ title: "Erro", description: "Falha ao criar usuário", variant: "destructive" });
         setMode('register');
         setLoading(false);
         return;
       }
       
+      console.log('[CADASTRO] Usuário auth criado! ID:', authData.user.id);
+      
+      // Step 2.5: Wait for session to be established
+      console.log('[CADASTRO] Step 2.5: Aguardando sessão...');
+      let sessionReady = false;
+      let retries = 0;
+      const maxRetries = 10;
+      
+      while (!sessionReady && retries < maxRetries) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id === authData.user.id) {
+          sessionReady = true;
+          console.log('[CADASTRO] Sessão estabelecida!');
+        } else {
+          retries++;
+          console.log(`[CADASTRO] Aguardando sessão... tentativa ${retries}/${maxRetries}`);
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      if (!sessionReady) {
+        console.error('[CADASTRO] Sessão não foi estabelecida após tentativas');
+        toast({ 
+          title: "Erro de sessão", 
+          description: "Por favor, faça login com suas credenciais.", 
+          variant: "destructive" 
+        });
+        setMode('login');
+        setLoginEmail(formData.email);
+        setLoading(false);
+        return;
+      }
+      
       // Step 3: Call RPC to create internal user and workspace
-      const { data: rpcResult, error: rpcError } = await supabase.rpc('register_first_user', {
+      console.log('[CADASTRO] Step 3: Chamando RPC register_first_user...');
+      const rpcParams = {
         p_email: formData.email,
         p_name: formData.name,
         p_phone: formData.phone.replace(/\D/g, ''),
@@ -276,16 +320,22 @@ const Auth = () => {
         p_trade_name: formData.documentType === 'cnpj' ? formData.tradeName : null,
         p_birth_date: formData.documentType === 'cpf' && formData.birthDate ? formData.birthDate : null,
         p_workspace_name: formData.workspaceName.trim()
-      });
+      };
+      console.log('[CADASTRO] RPC params:', JSON.stringify(rpcParams, null, 2));
+      
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('register_first_user', rpcParams);
       
       if (rpcError) {
-        console.error('RPC Error:', rpcError);
+        console.error('[CADASTRO] RPC Error:', rpcError);
+        console.error('[CADASTRO] RPC Error details:', JSON.stringify(rpcError, null, 2));
         
         let errorMessage = "Erro ao completar cadastro";
         if (rpcError.message.includes("Documento já cadastrado")) {
           errorMessage = "Este documento já está cadastrado no sistema";
         } else if (rpcError.message.includes("já possui cadastro")) {
           errorMessage = "Este usuário já possui cadastro completo";
+        } else {
+          errorMessage = rpcError.message;
         }
         
         toast({ 
@@ -297,6 +347,8 @@ const Auth = () => {
         setLoading(false);
         return;
       }
+      
+      console.log('[CADASTRO] RPC Success! Result:', JSON.stringify(rpcResult, null, 2));
       
       // Success!
       setMode('success');
@@ -311,7 +363,7 @@ const Auth = () => {
       }, 1500);
       
     } catch (error: any) {
-      console.error('Registration error:', error);
+      console.error('[CADASTRO] Erro geral:', error);
       toast({ 
         title: "Erro", 
         description: error.message || "Ocorreu um erro inesperado", 
