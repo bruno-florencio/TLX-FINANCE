@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useInternalUser } from "@/hooks/useInternalUser";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -16,11 +17,14 @@ import EquipeSection from "@/components/perfil/EquipeSection";
 const Perfil = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const { internalUser, loading: userLoading, refetch: refetchUser } = useInternalUser();
   const { workspaceId, workspace, loading: workspaceLoading, refetch: refetchWorkspace } = useWorkspace();
   
   const [saving, setSaving] = useState(false);
+  const [creatingWorkspace, setCreatingWorkspace] = useState(false);
   const [workspaceName, setWorkspaceName] = useState("");
+  const autoCreateAttempted = useRef(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -31,6 +35,80 @@ const Perfil = () => {
     tradeName: "",
   });
 
+  // AUTO-CREATE WORKSPACE if user exists but has no workspace
+  useEffect(() => {
+    const autoCreateWorkspace = async () => {
+      // Only run once, and only if user exists without workspace
+      if (autoCreateAttempted.current || userLoading || workspaceLoading) return;
+      if (!internalUser || workspaceId) return;
+      
+      autoCreateAttempted.current = true;
+      setCreatingWorkspace(true);
+      
+      toast({
+        title: "Primeiro acesso",
+        description: "Criando seu workspace...",
+      });
+      
+      try {
+        const defaultName = internalUser.trade_name || internalUser.name || user?.email || "Meu Workspace";
+        
+        const { data: newWorkspace, error: createError } = await supabase
+          .from("workspaces")
+          .insert({
+            nome: defaultName,
+            created_by_user_id: internalUser.id,
+            owner_id: internalUser.auth_user_id,
+          })
+          .select()
+          .single();
+
+        if (createError) throw createError;
+
+        // Update user with new workspace
+        const { error: userError } = await supabase
+          .from("users")
+          .update({
+            workspace_id: newWorkspace.id,
+            role: "master",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", internalUser.id);
+
+        if (userError) throw userError;
+
+        // Add to workspace_users
+        await supabase
+          .from("workspace_users")
+          .insert({
+            user_id: internalUser.auth_user_id,
+            workspace_id: newWorkspace.id,
+            role: "owner",
+          });
+
+        toast({
+          title: "Workspace criado!",
+          description: "Seu espaço de trabalho está pronto.",
+        });
+
+        setWorkspaceName(defaultName);
+        await refetchUser();
+        await refetchWorkspace();
+        
+      } catch (error) {
+        console.error("Erro ao criar workspace automaticamente:", error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível criar o workspace. Tente manualmente.",
+          variant: "destructive",
+        });
+      } finally {
+        setCreatingWorkspace(false);
+      }
+    };
+    
+    autoCreateWorkspace();
+  }, [internalUser, workspaceId, userLoading, workspaceLoading, user, toast, refetchUser, refetchWorkspace]);
 
   // Load workspace name from fetched workspace
   useEffect(() => {
@@ -224,12 +302,14 @@ const Perfil = () => {
     }
   };
 
-  if (userLoading || workspaceLoading) {
+  if (userLoading || workspaceLoading || creatingWorkspace) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Carregando perfil...</p>
+          <p className="text-muted-foreground">
+            {creatingWorkspace ? "Criando seu workspace..." : "Carregando perfil..."}
+          </p>
         </div>
       </div>
     );
