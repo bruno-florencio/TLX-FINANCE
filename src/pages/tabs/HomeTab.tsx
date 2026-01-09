@@ -4,12 +4,17 @@ import { ContasReceberCard } from "@/components/home/ContasReceberCard";
 import { FluxoCaixaCard } from "@/components/home/FluxoCaixaCard";
 import { CartoesCredito } from "@/components/home/CartoesCredito";
 import { SupabaseIntegrationTest } from "@/components/SupabaseIntegrationTest";
+import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+const MASTER_EMAIL = "brunofdalmeida1@gmail.com";
+
 const HomeTab = () => {
+  const { user } = useAuth();
   const hoje = new Date();
   const dataFormatada = format(hoje, "EEEE, d 'de' MMMM", { locale: ptBR });
+  const isMaster = user?.email === MASTER_EMAIL;
 
   return (
     <div className="space-y-6">
@@ -23,8 +28,8 @@ const HomeTab = () => {
         </div>
       </div>
 
-      {/* Teste de Integração Supabase */}
-      <SupabaseIntegrationTest />
+      {/* Teste de Integração Supabase - Apenas para master */}
+      {isMaster && <SupabaseIntegrationTest />}
 
       {/* Layout principal em grid */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-5">
