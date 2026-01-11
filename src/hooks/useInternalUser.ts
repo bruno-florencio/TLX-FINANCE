@@ -30,16 +30,22 @@ export const useInternalUser = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchInternalUser = async () => {
       if (!authUser) {
-        setInternalUser(null);
-        setLoading(false);
+        if (isMounted) {
+          setInternalUser(null);
+          setLoading(false);
+        }
         return;
       }
 
       try {
-        setLoading(true);
-        setError(null);
+        if (isMounted) {
+          setLoading(true);
+          setError(null);
+        }
 
         const { data, error: fetchError } = await supabase
           .from('users')
@@ -47,6 +53,8 @@ export const useInternalUser = () => {
           .eq('auth_user_id', authUser.id)
           .eq('status', 'active')
           .single();
+
+        if (!isMounted) return;
 
         if (fetchError) {
           if (fetchError.code === 'PGRST116') {
@@ -59,17 +67,24 @@ export const useInternalUser = () => {
           setInternalUser(data as InternalUser);
         }
       } catch (err: any) {
+        if (!isMounted) return;
         console.error('Erro ao buscar usuário interno:', err);
         setError(err.message);
         setInternalUser(null);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     if (!authLoading) {
       fetchInternalUser();
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [authUser, authLoading]);
 
   /**

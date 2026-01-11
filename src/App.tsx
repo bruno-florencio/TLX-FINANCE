@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Cadastro from "./pages/Cadastro";
@@ -22,43 +23,45 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            {/* Rotas públicas */}
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/cadastro" element={<Cadastro />} />
-            <Route path="/aceitar-convite" element={<AceitarConvite />} />
-            
-            {/* Dashboard - apenas requer autenticação */}
-            <Route 
-              path="/" 
-              element={
-                <ProtectedRoute>
-                  <Index />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Perfil - protegida */}
-            <Route 
-              path="/perfil" 
-              element={
-                <ProtectedRoute>
-                  <Perfil />
-                </ProtectedRoute>
-              } 
-            />
-            
-            <Route 
-              path="/teste" 
-              element={
-                <ProtectedRoute>
-                  <TestePage />
-                </ProtectedRoute>
-              } 
-            />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <ErrorBoundary fallbackRoute="/auth">
+            <Routes>
+              {/* Rotas públicas */}
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/cadastro" element={<Cadastro />} />
+              <Route path="/aceitar-convite" element={<AceitarConvite />} />
+              
+              {/* Dashboard - requer autenticação + cadastro completo */}
+              <Route 
+                path="/" 
+                element={
+                  <ProtectedRoute>
+                    <Index />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Perfil - protegida (permite usuário sem cadastro completo para completar) */}
+              <Route 
+                path="/perfil" 
+                element={
+                  <ProtectedRoute>
+                    <Perfil />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/teste" 
+                element={
+                  <ProtectedRoute>
+                    <TestePage />
+                  </ProtectedRoute>
+                } 
+              />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ErrorBoundary>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
