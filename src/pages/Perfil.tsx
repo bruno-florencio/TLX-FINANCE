@@ -37,18 +37,22 @@ const Perfil = () => {
 
   // AUTO-CREATE WORKSPACE if user exists but has no workspace
   useEffect(() => {
+    let isMounted = true;
+    
     const autoCreateWorkspace = async () => {
       // Only run once, and only if user exists without workspace
       if (autoCreateAttempted.current || userLoading || workspaceLoading) return;
       if (!internalUser || workspaceId) return;
       
       autoCreateAttempted.current = true;
-      setCreatingWorkspace(true);
       
-      toast({
-        title: "Primeiro acesso",
-        description: "Criando seu workspace...",
-      });
+      if (isMounted) {
+        setCreatingWorkspace(true);
+        toast({
+          title: "Primeiro acesso",
+          description: "Criando seu workspace...",
+        });
+      }
       
       try {
         const defaultName = internalUser.trade_name || internalUser.name || user?.email || "Meu Workspace";
@@ -63,6 +67,7 @@ const Perfil = () => {
           .select()
           .single();
 
+        if (!isMounted) return;
         if (createError) throw createError;
 
         // Update user with new workspace
@@ -75,6 +80,7 @@ const Perfil = () => {
           })
           .eq("id", internalUser.id);
 
+        if (!isMounted) return;
         if (userError) throw userError;
 
         // Add to workspace_users
@@ -86,6 +92,8 @@ const Perfil = () => {
             role: "owner",
           });
 
+        if (!isMounted) return;
+
         toast({
           title: "Workspace criado!",
           description: "Seu espaço de trabalho está pronto.",
@@ -96,6 +104,7 @@ const Perfil = () => {
         await refetchWorkspace();
         
       } catch (error) {
+        if (!isMounted) return;
         console.error("Erro ao criar workspace automaticamente:", error);
         toast({
           title: "Erro",
@@ -103,11 +112,17 @@ const Perfil = () => {
           variant: "destructive",
         });
       } finally {
-        setCreatingWorkspace(false);
+        if (isMounted) {
+          setCreatingWorkspace(false);
+        }
       }
     };
     
     autoCreateWorkspace();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [internalUser, workspaceId, userLoading, workspaceLoading, user, toast, refetchUser, refetchWorkspace]);
 
   // Load workspace name from fetched workspace
