@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -50,6 +50,14 @@ export interface Fornecedor {
   updated_at?: string;
 }
 
+export interface Cliente {
+  id: string;
+  nome: string;
+  contato?: string | null;
+  workspace_id: string;
+  created_at?: string;
+}
+
 /**
  * Hook para buscar dados do Supabase.
  * NÃO aplica filtros manuais - confia inteiramente no RLS do Supabase.
@@ -60,20 +68,22 @@ export const useSupabaseData = () => {
   const [contas, setContas] = useState<ContaBancaria[]>([]);
   const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       
       // Buscar todas as tabelas em paralelo
       // O RLS cuida automaticamente do filtro por workspace
-      const [categoriasRes, contasRes, centrosCustoRes, fornecedoresRes] = await Promise.all([
+      const [categoriasRes, contasRes, centrosCustoRes, fornecedoresRes, clientesRes] = await Promise.all([
         supabase.from('categorias').select('*').order('nome'),
         supabase.from('contas_bancarias').select('*').eq('ativo', true).order('nome'),
         supabase.from('centros_custo').select('*').eq('ativo', true).order('nome'),
-        supabase.from('fornecedores').select('*').eq('ativo', true).order('nome')
+        supabase.from('fornecedores').select('*').eq('ativo', true).order('nome'),
+        supabase.from('clientes').select('*').order('nome')
       ]);
 
       if (categoriasRes.error) {
@@ -100,6 +110,12 @@ export const useSupabaseData = () => {
         setFornecedores((fornecedoresRes.data || []) as unknown as Fornecedor[]);
       }
 
+      if (clientesRes.error) {
+        console.error('Erro ao buscar clientes:', clientesRes.error);
+      } else {
+        setClientes((clientesRes.data || []) as unknown as Cliente[]);
+      }
+
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
       toast({
@@ -110,17 +126,18 @@ export const useSupabaseData = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   return {
     categorias,
     contas,
     centrosCusto,
     fornecedores,
+    clientes,
     loading,
     refetch: fetchData
   };

@@ -33,13 +33,13 @@ import {
   ListTodo,
   Trash2,
   XCircle,
-  CalendarIcon,
-  Search
+  CalendarIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { supabase } from "@/integrations/supabase/client";
+import { SelectWithCreate } from "./SelectWithCreate";
 
 interface NovaEntradaSheetProps {
   open: boolean;
@@ -50,7 +50,7 @@ interface NovaEntradaSheetProps {
 
 const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: NovaEntradaSheetProps) => {
   const { toast } = useToast();
-  const { categorias, contas, fornecedores } = useSupabaseData();
+  const { categorias, contas, clientes, refetch } = useSupabaseData();
   const { workspaceId, hasWorkspace } = useWorkspace();
   const [loading, setLoading] = useState(false);
 
@@ -186,45 +186,26 @@ const NovaEntradaSheet = ({ open, onOpenChange, onSuccess, editingLancamento }: 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="cliente">Cliente *</Label>
-                  <div className="flex gap-2">
-                    <Select 
-                      value={formData.fornecedor_id} 
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, fornecedor_id: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o cliente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {fornecedores.map(fornecedor => (
-                          <SelectItem key={fornecedor.id} value={fornecedor.id}>
-                            {fornecedor.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button variant="outline" size="icon">
-                      <Search className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <SelectWithCreate
+                    value={formData.fornecedor_id}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, fornecedor_id: value }))}
+                    options={clientes}
+                    placeholder="Selecione o cliente"
+                    type="cliente"
+                    onRefetch={refetch}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="categoria">Categoria</Label>
-                  <Select 
-                    value={formData.categoria_id} 
+                  <SelectWithCreate
+                    value={formData.categoria_id}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, categoria_id: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a categoria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categorias.filter(cat => cat.tipo === 'entrada').map(categoria => (
-                        <SelectItem key={categoria.id} value={categoria.id}>
-                          {categoria.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    options={categorias.filter(cat => cat.tipo === 'entrada')}
+                    placeholder="Selecione a categoria"
+                    type="categoria_entrada"
+                    onRefetch={refetch}
+                  />
                 </div>
               </div>
 
