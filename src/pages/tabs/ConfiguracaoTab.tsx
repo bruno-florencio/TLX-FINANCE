@@ -41,16 +41,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-interface Cliente {
-  id: string;
-  nome: string;
-  contato: string | null;
-  workspace_id: string;
-}
-
 const ConfiguracaoTab = () => {
   const { toast } = useToast();
-  const { contas, categorias, centrosCusto, fornecedores, loading, refetch } = useSupabaseData();
+  // Buscar TODOS os dados (incluindo inativos) para gerenciamento
+  const { contas, categorias, centrosCusto, fornecedores, clientes, loading, refetch } = useSupabaseData({ includeInactive: true });
   
   // States para contas bancárias
   const [novaContaOpen, setNovaContaOpen] = useState(false);
@@ -64,31 +58,6 @@ const ConfiguracaoTab = () => {
   // States para exclusão
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: string; id: string; nome: string } | null>(null);
-  
-  // Clientes (carregados separadamente)
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [loadingClientes, setLoadingClientes] = useState(true);
-
-  useEffect(() => {
-    fetchClientes();
-  }, []);
-
-  const fetchClientes = async () => {
-    try {
-      setLoadingClientes(true);
-      const { data, error } = await supabase
-        .from("clientes")
-        .select("*")
-        .order("nome");
-
-      if (error) throw error;
-      setClientes(data || []);
-    } catch (error) {
-      console.error("Erro ao buscar clientes:", error);
-    } finally {
-      setLoadingClientes(false);
-    }
-  };
 
   const categoriasEntrada = categorias.filter(c => c.tipo === 'entrada');
   const categoriasSaida = categorias.filter(c => c.tipo === 'saida');
@@ -119,7 +88,6 @@ const ConfiguracaoTab = () => {
 
   const handleEntitySuccess = () => {
     refetch();
-    fetchClientes();
     setEntitySheetOpen(false);
     setEditingEntity(null);
   };
@@ -156,14 +124,14 @@ const ConfiguracaoTab = () => {
       }
 
       if (itemToDelete.type === "Cliente") {
-        // Clientes não têm campo ativo, então deletar diretamente
+        // Soft delete para clientes também (agora tem campo ativo)
         const { error } = await supabase
           .from("clientes")
-          .delete()
+          .update({ ativo: false })
           .eq("id", itemToDelete.id);
 
         if (error) throw error;
-        fetchClientes();
+        refetch();
       } else {
         // Soft delete: marcar como inativo
         const { error } = await supabase
@@ -251,7 +219,7 @@ const ConfiguracaoTab = () => {
             Gerencie fornecedores, clientes, contas bancárias e categorias
           </p>
         </div>
-        <Button variant="outline" onClick={() => { refetch(); fetchClientes(); }} disabled={loading}>
+        <Button variant="outline" onClick={() => refetch()} disabled={loading}>
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           Atualizar
         </Button>
@@ -472,7 +440,7 @@ const ConfiguracaoTab = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {loadingClientes ? (
+          {loading ? (
             <div className="flex items-center justify-center py-8">
               <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
@@ -487,7 +455,10 @@ const ConfiguracaoTab = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
-                    <TableHead>Contato</TableHead>
+                    <TableHead>Documento</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -495,7 +466,14 @@ const ConfiguracaoTab = () => {
                   {clientes.map((cliente) => (
                     <TableRow key={cliente.id}>
                       <TableCell className="font-medium">{cliente.nome}</TableCell>
-                      <TableCell>{cliente.contato || "-"}</TableCell>
+                      <TableCell>{cliente.documento || "-"}</TableCell>
+                      <TableCell>{cliente.email || "-"}</TableCell>
+                      <TableCell>{cliente.telefone || "-"}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={cliente.ativo ? "default" : "secondary"}>
+                          {cliente.ativo ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button 
@@ -506,6 +484,15 @@ const ConfiguracaoTab = () => {
                             title="Editar"
                           >
                             <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleToggleAtivo("clientes", cliente.id, cliente.ativo)}
+                            title={cliente.ativo ? "Desativar" : "Ativar"}
+                          >
+                            {cliente.ativo ? <ToggleRight className="w-4 h-4 text-green-500" /> : <ToggleLeft className="w-4 h-4 text-muted-foreground" />}
                           </Button>
                           <Button 
                             variant="ghost" 

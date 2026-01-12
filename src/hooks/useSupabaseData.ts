@@ -54,16 +54,28 @@ export interface Cliente {
   id: string;
   nome: string;
   contato?: string | null;
+  documento?: string | null;
+  email?: string | null;
+  telefone?: string | null;
+  ativo: boolean;
   workspace_id: string;
   created_at?: string;
+  updated_at?: string;
+}
+
+interface UseSupabaseDataOptions {
+  includeInactive?: boolean;
 }
 
 /**
  * Hook para buscar dados do Supabase.
  * NÃO aplica filtros manuais - confia inteiramente no RLS do Supabase.
  * O controle de acesso por workspace é feito automaticamente via RLS.
+ * 
+ * @param options.includeInactive - Se true, busca todos os registros (para tela de configuração)
  */
-export const useSupabaseData = () => {
+export const useSupabaseData = (options: UseSupabaseDataOptions = {}) => {
+  const { includeInactive = false } = options;
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [contas, setContas] = useState<ContaBancaria[]>([]);
   const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
@@ -78,12 +90,29 @@ export const useSupabaseData = () => {
       
       // Buscar todas as tabelas em paralelo
       // O RLS cuida automaticamente do filtro por workspace
+      // Se includeInactive = true, não filtra por ativo (para configuração)
+      const contasQuery = includeInactive 
+        ? supabase.from('contas_bancarias').select('*').order('nome')
+        : supabase.from('contas_bancarias').select('*').eq('ativo', true).order('nome');
+      
+      const centrosCustoQuery = includeInactive
+        ? supabase.from('centros_custo').select('*').order('nome')
+        : supabase.from('centros_custo').select('*').eq('ativo', true).order('nome');
+      
+      const fornecedoresQuery = includeInactive
+        ? supabase.from('fornecedores').select('*').order('nome')
+        : supabase.from('fornecedores').select('*').eq('ativo', true).order('nome');
+      
+      const clientesQuery = includeInactive
+        ? supabase.from('clientes').select('*').order('nome')
+        : supabase.from('clientes').select('*').eq('ativo', true).order('nome');
+
       const [categoriasRes, contasRes, centrosCustoRes, fornecedoresRes, clientesRes] = await Promise.all([
         supabase.from('categorias').select('*').order('nome'),
-        supabase.from('contas_bancarias').select('*').eq('ativo', true).order('nome'),
-        supabase.from('centros_custo').select('*').eq('ativo', true).order('nome'),
-        supabase.from('fornecedores').select('*').eq('ativo', true).order('nome'),
-        supabase.from('clientes').select('*').order('nome')
+        contasQuery,
+        centrosCustoQuery,
+        fornecedoresQuery,
+        clientesQuery
       ]);
 
       if (categoriasRes.error) {
@@ -126,7 +155,7 @@ export const useSupabaseData = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, includeInactive]);
 
   useEffect(() => {
     fetchData();
