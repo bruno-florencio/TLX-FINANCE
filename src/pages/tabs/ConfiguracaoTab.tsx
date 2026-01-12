@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Settings, 
   Users, 
   Building, 
   CreditCard,
@@ -12,12 +11,15 @@ import {
   Edit,
   Trash2,
   Target,
-  RefreshCw
+  RefreshCw,
+  ToggleLeft,
+  ToggleRight
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
 import NovaContaSheet from "@/components/forms/NovaContaSheet";
+import CadastroEntitySheet, { EntityType } from "@/components/forms/CadastroEntitySheet";
 import { bancosUnicos } from "@/data/bancosBrasileiros";
 import { BankLogo, CardBrandLogo } from "@/components/ui/BankLogo";
 import {
@@ -30,6 +32,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Cliente {
   id: string;
@@ -42,10 +52,20 @@ const ConfiguracaoTab = () => {
   const { toast } = useToast();
   const { contas, categorias, centrosCusto, fornecedores, loading, refetch } = useSupabaseData();
   
+  // States para contas bancárias
   const [novaContaOpen, setNovaContaOpen] = useState(false);
   const [editingConta, setEditingConta] = useState<any>(null);
+  
+  // States para CRUD genérico
+  const [entitySheetOpen, setEntitySheetOpen] = useState(false);
+  const [currentEntityType, setCurrentEntityType] = useState<EntityType>("fornecedor");
+  const [editingEntity, setEditingEntity] = useState<any>(null);
+  
+  // States para exclusão
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: string; id: string; nome: string } | null>(null);
+  
+  // Clientes (carregados separadamente)
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loadingClientes, setLoadingClientes] = useState(true);
 
@@ -73,18 +93,38 @@ const ConfiguracaoTab = () => {
   const categoriasEntrada = categorias.filter(c => c.tipo === 'entrada');
   const categoriasSaida = categorias.filter(c => c.tipo === 'saida');
 
-  const handleEdit = (type: string, item: any) => {
-    if (type === "Conta") {
-      setEditingConta(item);
-      setNovaContaOpen(true);
-    } else {
-      toast({
-        title: `Editar ${type}`,
-        description: `Modal de edição será implementado para: ${item.nome || item.banco}`,
-      });
-    }
+  // Handlers para Contas Bancárias
+  const handleEditConta = (conta: any) => {
+    setEditingConta(conta);
+    setNovaContaOpen(true);
   };
 
+  const handleAddConta = () => {
+    setEditingConta(null);
+    setNovaContaOpen(true);
+  };
+
+  // Handlers para Entidades Genéricas (Fornecedor, Cliente, Categoria, Centro de Custo)
+  const handleAddEntity = (entityType: EntityType) => {
+    setCurrentEntityType(entityType);
+    setEditingEntity(null);
+    setEntitySheetOpen(true);
+  };
+
+  const handleEditEntity = (entityType: EntityType, item: any) => {
+    setCurrentEntityType(entityType);
+    setEditingEntity(item);
+    setEntitySheetOpen(true);
+  };
+
+  const handleEntitySuccess = () => {
+    refetch();
+    fetchClientes();
+    setEntitySheetOpen(false);
+    setEditingEntity(null);
+  };
+
+  // Handler para deletar
   const handleDeleteClick = (type: string, id: string, nome: string) => {
     setItemToDelete({ type, id, nome });
     setDeleteDialogOpen(true);
@@ -116,6 +156,7 @@ const ConfiguracaoTab = () => {
       }
 
       if (itemToDelete.type === "Cliente") {
+        // Clientes não têm campo ativo, então deletar diretamente
         const { error } = await supabase
           .from("clientes")
           .delete()
@@ -124,6 +165,7 @@ const ConfiguracaoTab = () => {
         if (error) throw error;
         fetchClientes();
       } else {
+        // Soft delete: marcar como inativo
         const { error } = await supabase
           .from(tableName as any)
           .update({ ativo: false } as any)
@@ -149,14 +191,27 @@ const ConfiguracaoTab = () => {
     }
   };
 
-  const handleAdd = (type: string) => {
-    if (type === "Conta Bancária") {
-      setEditingConta(null);
-      setNovaContaOpen(true);
-    } else {
+  // Toggle status ativo/inativo
+  const handleToggleAtivo = async (tableName: string, id: string, currentAtivo: boolean) => {
+    try {
+      const { error } = await supabase
+        .from(tableName as any)
+        .update({ ativo: !currentAtivo } as any)
+        .eq("id", id);
+
+      if (error) throw error;
+
       toast({
-        title: `Novo ${type}`,
-        description: "Modal de cadastro será implementado.",
+        title: currentAtivo ? "Desativado" : "Ativado",
+        description: `Item ${currentAtivo ? "desativado" : "ativado"} com sucesso.`,
+      });
+
+      refetch();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao alterar status.",
+        variant: "destructive",
       });
     }
   };
@@ -210,7 +265,7 @@ const ConfiguracaoTab = () => {
               <CreditCard className="w-5 h-5" />
               <span>Contas Bancárias e Cartões de Crédito</span>
             </div>
-            <Button onClick={() => handleAdd("Conta Bancária")} size="sm">
+            <Button onClick={handleAddConta} size="sm">
               <Plus className="w-4 h-4 mr-2" />
               Nova Conta / Cartão
             </Button>
@@ -230,7 +285,6 @@ const ConfiguracaoTab = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {contas.map((conta) => {
-                const bancoInfo = getBancoInfo(conta.banco || "");
                 const tipoBadge = getTipoContaBadge(conta.tipo);
                 const isCartao = conta.tipo === "cartao_credito";
                 
@@ -294,7 +348,7 @@ const ConfiguracaoTab = () => {
                           variant="ghost" 
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => handleEdit("Conta", conta)}
+                          onClick={() => handleEditConta(conta)}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -325,7 +379,7 @@ const ConfiguracaoTab = () => {
               <span>Fornecedores</span>
               <Badge variant="secondary" className="ml-2">{fornecedores.length}</Badge>
             </div>
-            <Button onClick={() => handleAdd("Fornecedor")} size="sm">
+            <Button onClick={() => handleAddEntity("fornecedor")} size="sm">
               <Plus className="w-4 h-4 mr-2" />
               Novo Fornecedor
             </Button>
@@ -338,36 +392,65 @@ const ConfiguracaoTab = () => {
               <p className="text-sm">Nenhum fornecedor cadastrado</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {fornecedores.map((fornecedor) => (
-                <div key={fornecedor.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
-                  <div className="flex-1">
-                    <p className="font-medium">{fornecedor.nome}</p>
-                    {fornecedor.documento && (
-                      <p className="text-sm text-muted-foreground">Documento: {fornecedor.documento}</p>
-                    )}
-                    {fornecedor.email && (
-                      <p className="text-sm text-muted-foreground">Contato: {fornecedor.email}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleEdit("Fornecedor", fornecedor)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDeleteClick("Fornecedor", fornecedor.id, fornecedor.nome)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Documento</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {fornecedores.map((fornecedor) => (
+                    <TableRow key={fornecedor.id}>
+                      <TableCell className="font-medium">{fornecedor.nome}</TableCell>
+                      <TableCell>{fornecedor.documento || "-"}</TableCell>
+                      <TableCell>{fornecedor.email || "-"}</TableCell>
+                      <TableCell>{fornecedor.telefone || "-"}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={fornecedor.ativo ? "default" : "secondary"}>
+                          {fornecedor.ativo ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleEditEntity("fornecedor", fornecedor)}
+                            title="Editar"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleToggleAtivo("fornecedores", fornecedor.id, fornecedor.ativo)}
+                            title={fornecedor.ativo ? "Desativar" : "Ativar"}
+                          >
+                            {fornecedor.ativo ? <ToggleRight className="w-4 h-4 text-green-500" /> : <ToggleLeft className="w-4 h-4 text-muted-foreground" />}
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteClick("Fornecedor", fornecedor.id, fornecedor.nome)}
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
@@ -382,7 +465,7 @@ const ConfiguracaoTab = () => {
               <span>Clientes</span>
               <Badge variant="secondary" className="ml-2">{clientes.length}</Badge>
             </div>
-            <Button onClick={() => handleAdd("Cliente")} size="sm">
+            <Button onClick={() => handleAddEntity("cliente")} size="sm">
               <Plus className="w-4 h-4 mr-2" />
               Novo Cliente
             </Button>
@@ -399,33 +482,46 @@ const ConfiguracaoTab = () => {
               <p className="text-sm">Nenhum cliente cadastrado</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {clientes.map((cliente) => (
-                <div key={cliente.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
-                  <div className="flex-1">
-                    <p className="font-medium">{cliente.nome}</p>
-                    {cliente.contato && (
-                      <p className="text-sm text-muted-foreground">Contato: {cliente.contato}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleEdit("Cliente", cliente)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDeleteClick("Cliente", cliente.id, cliente.nome)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Contato</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {clientes.map((cliente) => (
+                    <TableRow key={cliente.id}>
+                      <TableCell className="font-medium">{cliente.nome}</TableCell>
+                      <TableCell>{cliente.contato || "-"}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleEditEntity("cliente", cliente)}
+                            title="Editar"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteClick("Cliente", cliente.id, cliente.nome)}
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
@@ -442,7 +538,7 @@ const ConfiguracaoTab = () => {
                 <span>Categorias de Entrada</span>
                 <Badge variant="secondary" className="ml-2">{categoriasEntrada.length}</Badge>
               </div>
-              <Button onClick={() => handleAdd("Categoria de Entrada")} size="sm">
+              <Button onClick={() => handleAddEntity("categoria_entrada")} size="sm">
                 <Plus className="w-4 h-4 mr-2" />
                 Nova
               </Button>
@@ -455,24 +551,29 @@ const ConfiguracaoTab = () => {
                 <p className="text-sm">Nenhuma categoria de entrada</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {categoriasEntrada.map((categoria) => (
                   <div key={categoria.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
                     <div className="flex items-center space-x-3">
-                      <div className="w-4 h-4 rounded-full bg-green-500"></div>
+                      <div 
+                        className="w-4 h-4 rounded-full" 
+                        style={{ backgroundColor: categoria.cor || "#22C55E" }}
+                      />
                       <span className="font-medium">{categoria.nome}</span>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1">
                       <Button 
                         variant="ghost" 
-                        size="sm"
-                        onClick={() => handleEdit("Categoria", categoria)}
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleEditEntity("categoria_entrada", categoria)}
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button 
                         variant="ghost" 
-                        size="sm"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
                         onClick={() => handleDeleteClick("Categoria", categoria.id, categoria.nome)}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -494,7 +595,7 @@ const ConfiguracaoTab = () => {
                 <span>Categorias de Saída</span>
                 <Badge variant="secondary" className="ml-2">{categoriasSaida.length}</Badge>
               </div>
-              <Button onClick={() => handleAdd("Categoria de Saída")} size="sm">
+              <Button onClick={() => handleAddEntity("categoria_saida")} size="sm">
                 <Plus className="w-4 h-4 mr-2" />
                 Nova
               </Button>
@@ -507,24 +608,29 @@ const ConfiguracaoTab = () => {
                 <p className="text-sm">Nenhuma categoria de saída</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {categoriasSaida.map((categoria) => (
                   <div key={categoria.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
                     <div className="flex items-center space-x-3">
-                      <div className="w-4 h-4 rounded-full bg-red-500"></div>
+                      <div 
+                        className="w-4 h-4 rounded-full" 
+                        style={{ backgroundColor: categoria.cor || "#EF4444" }}
+                      />
                       <span className="font-medium">{categoria.nome}</span>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1">
                       <Button 
                         variant="ghost" 
-                        size="sm"
-                        onClick={() => handleEdit("Categoria", categoria)}
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleEditEntity("categoria_saida", categoria)}
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button 
                         variant="ghost" 
-                        size="sm"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
                         onClick={() => handleDeleteClick("Categoria", categoria.id, categoria.nome)}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -547,7 +653,7 @@ const ConfiguracaoTab = () => {
               <span>Centros de Custo</span>
               <Badge variant="secondary" className="ml-2">{centrosCusto.length}</Badge>
             </div>
-            <Button onClick={() => handleAdd("Centro de Custo")} size="sm">
+            <Button onClick={() => handleAddEntity("centro_custo")} size="sm">
               <Plus className="w-4 h-4 mr-2" />
               Novo Centro
             </Button>
@@ -560,42 +666,67 @@ const ConfiguracaoTab = () => {
               <p className="text-sm">Nenhum centro de custo cadastrado</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {centrosCusto.map((centro) => (
-                <div key={centro.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
-                  <div className="flex items-center space-x-3">
-                    <Target className="w-4 h-4 text-muted-foreground" />
-                    <div>
-                      <span className="font-medium">{centro.nome}</span>
-                      {centro.descricao && (
-                        <p className="text-xs text-muted-foreground">{centro.descricao}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleEdit("Centro de Custo", centro)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDeleteClick("Centro de Custo", centro.id, centro.nome)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {centrosCusto.map((centro) => (
+                    <TableRow key={centro.id}>
+                      <TableCell className="font-medium">{centro.nome}</TableCell>
+                      <TableCell>{centro.descricao || "-"}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={centro.ativo ? "default" : "secondary"}>
+                          {centro.ativo ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleEditEntity("centro_custo", centro)}
+                            title="Editar"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleToggleAtivo("centros_custo", centro.id, centro.ativo)}
+                            title={centro.ativo ? "Desativar" : "Ativar"}
+                          >
+                            {centro.ativo ? <ToggleRight className="w-4 h-4 text-green-500" /> : <ToggleLeft className="w-4 h-4 text-muted-foreground" />}
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteClick("Centro de Custo", centro.id, centro.nome)}
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Sheet para Nova Conta */}
+      {/* Sheet para Nova Conta Bancária */}
       <NovaContaSheet 
         open={novaContaOpen} 
         onOpenChange={(open) => {
@@ -610,6 +741,15 @@ const ConfiguracaoTab = () => {
         }}
       />
 
+      {/* Sheet para Cadastro de Entidades (Fornecedor, Cliente, Categoria, Centro Custo) */}
+      <CadastroEntitySheet
+        open={entitySheetOpen}
+        onOpenChange={setEntitySheetOpen}
+        entityType={currentEntityType}
+        editingItem={editingEntity}
+        onSuccess={handleEntitySuccess}
+      />
+
       {/* Dialog de Confirmação de Exclusão */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -617,7 +757,7 @@ const ConfiguracaoTab = () => {
             <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir {itemToDelete?.type.toLowerCase()} "{itemToDelete?.nome}"? 
-              Esta ação não pode ser desfeita.
+              {itemToDelete?.type !== "Cliente" && " O item será marcado como inativo."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
