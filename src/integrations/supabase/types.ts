@@ -98,24 +98,39 @@ export type Database = {
       }
       clientes: {
         Row: {
+          ativo: boolean
           contato: string | null
           created_at: string | null
+          documento: string | null
+          email: string | null
           id: string
           nome: string
+          telefone: string | null
+          updated_at: string | null
           workspace_id: string
         }
         Insert: {
+          ativo?: boolean
           contato?: string | null
           created_at?: string | null
+          documento?: string | null
+          email?: string | null
           id?: string
           nome: string
+          telefone?: string | null
+          updated_at?: string | null
           workspace_id: string
         }
         Update: {
+          ativo?: boolean
           contato?: string | null
           created_at?: string | null
+          documento?: string | null
+          email?: string | null
           id?: string
           nome?: string
+          telefone?: string | null
+          updated_at?: string | null
           workspace_id?: string
         }
         Relationships: [

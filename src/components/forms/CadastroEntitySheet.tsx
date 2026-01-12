@@ -41,14 +41,19 @@ const entityConfig = {
       { name: "telefone", label: "Telefone", type: "tel" },
       { name: "endereco", label: "Endereço", type: "text" },
     ],
+    hasAtivo: true,
   },
   cliente: {
     title: "Cliente",
     table: "clientes",
     fields: [
       { name: "nome", label: "Nome *", type: "text", required: true },
-      { name: "contato", label: "Contato (Email/Telefone)", type: "text" },
+      { name: "documento", label: "CPF/CNPJ", type: "text" },
+      { name: "email", label: "Email", type: "email" },
+      { name: "telefone", label: "Telefone", type: "tel" },
+      { name: "contato", label: "Observações", type: "text" },
     ],
+    hasAtivo: true,
   },
   categoria_entrada: {
     title: "Categoria de Entrada",
@@ -75,6 +80,7 @@ const entityConfig = {
       { name: "nome", label: "Nome *", type: "text", required: true },
       { name: "descricao", label: "Descrição", type: "textarea" },
     ],
+    hasAtivo: true,
   },
 };
 
@@ -157,8 +163,8 @@ const CadastroEntitySheet = ({
         Object.assign(saveData, (config as any).extraData);
       }
 
-      // Adicionar ativo se a tabela suporta
-      if (entityType !== "cliente") {
+      // Adicionar ativo se a tabela suporta (agora inclui clientes)
+      if ((config as any).hasAtivo !== false) {
         saveData.ativo = ativo;
       }
 
@@ -261,8 +267,8 @@ const CadastroEntitySheet = ({
             </div>
           ))}
 
-          {/* Status Ativo (exceto clientes que não têm esse campo) */}
-          {entityType !== "cliente" && editingItem && (
+          {/* Status Ativo */}
+          {editingItem && (config as any).hasAtivo !== false && (
             <div className="flex items-center justify-between py-2">
               <Label htmlFor="ativo">Status Ativo</Label>
               <Switch
