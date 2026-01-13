@@ -2,9 +2,7 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -22,8 +20,7 @@ import {
   ArrowUp,
   ArrowDown,
   CalendarIcon,
-  Filter,
-  X
+  Building2
 } from "lucide-react";
 import { exportToExcel, exportToPDF, formatCurrency, formatDate } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
@@ -34,8 +31,9 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import NovaContaPagarSheet from "@/components/forms/NovaContaPagarSheet";
+import { LancamentosFilterModal, LancamentosFilters, useFilteredLancamentos } from "@/components/filters/LancamentosFilterModal";
 
-type SortField = 'fornecedor' | 'data_emissao' | 'categoria' | 'data_vencimento' | 'data_pagamento' | 'valor' | 'status';
+type SortField = 'fornecedor' | 'data_emissao' | 'categoria' | 'centro_custo' | 'data_vencimento' | 'data_pagamento' | 'valor' | 'status';
 type SortDirection = 'asc' | 'desc';
 
 const SaidasTabEnhanced = () => {
@@ -47,26 +45,23 @@ const SaidasTabEnhanced = () => {
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [payDate, setPayDate] = useState<Date | undefined>(new Date());
-  const [showFilters, setShowFilters] = useState(false);
   
-  // Estados para filtros
-  const [filters, setFilters] = useState({
-    fornecedor: '',
-    categoria: '',
+  // Estado para filtros
+  const [filters, setFilters] = useState<LancamentosFilters>({
+    dataInicio: undefined,
+    dataFim: undefined,
     status: '',
+    categoria: '',
+    centroCusto: '',
+    fornecedorCliente: '',
     valorMin: '',
     valorMax: '',
-    dataEmissaoInicio: undefined as Date | undefined,
-    dataEmissaoFim: undefined as Date | undefined,
-    dataVencimentoInicio: undefined as Date | undefined,
-    dataVencimentoFim: undefined as Date | undefined,
-    dataPagamentoInicio: undefined as Date | undefined,
-    dataPagamentoFim: undefined as Date | undefined,
+    descricao: '',
   });
 
   // Hooks para dados
   const { lancamentos, loading, refetch, markAsPaid, deleteLancamento } = useLancamentos('saida');
-  const { categorias } = useSupabaseData();
+  const { categorias, centrosCusto, fornecedores, clientes } = useSupabaseData();
 
   // Função para alternar ordenação
   const handleSort = (field: SortField) => {
@@ -88,94 +83,8 @@ const SaidasTabEnhanced = () => {
       : <ArrowDown className="w-3 h-3 ml-1" />;
   };
 
-  // Limpar filtros
-  const clearFilters = () => {
-    setFilters({
-      fornecedor: '',
-      categoria: '',
-      status: '',
-      valorMin: '',
-      valorMax: '',
-      dataEmissaoInicio: undefined,
-      dataEmissaoFim: undefined,
-      dataVencimentoInicio: undefined,
-      dataVencimentoFim: undefined,
-      dataPagamentoInicio: undefined,
-      dataPagamentoFim: undefined,
-    });
-  };
-
-  // Filtrar lançamentos
-  const filteredLancamentos = useMemo(() => {
-    let filtered = [...lancamentos];
-
-    // Filtro por fornecedor
-    if (filters.fornecedor) {
-      filtered = filtered.filter(l => 
-        l.descricao?.toLowerCase().includes(filters.fornecedor.toLowerCase())
-      );
-    }
-
-    // Filtro por categoria
-    if (filters.categoria) {
-      filtered = filtered.filter(l => l.categoria_id === filters.categoria);
-    }
-
-    // Filtro por status
-    if (filters.status) {
-      filtered = filtered.filter(l => l.status === filters.status);
-    }
-
-    // Filtro por valor mínimo
-    if (filters.valorMin) {
-      const min = parseFloat(filters.valorMin);
-      filtered = filtered.filter(l => l.valor >= min);
-    }
-
-    // Filtro por valor máximo
-    if (filters.valorMax) {
-      const max = parseFloat(filters.valorMax);
-      filtered = filtered.filter(l => l.valor <= max);
-    }
-
-    // Filtro por data de emissão (usando data_vencimento)
-    if (filters.dataEmissaoInicio) {
-      filtered = filtered.filter(l => 
-        l.data_vencimento && new Date(l.data_vencimento) >= filters.dataEmissaoInicio
-      );
-    }
-    if (filters.dataEmissaoFim) {
-      filtered = filtered.filter(l => 
-        l.data_vencimento && new Date(l.data_vencimento) <= filters.dataEmissaoFim
-      );
-    }
-
-    // Filtro por data de vencimento
-    if (filters.dataVencimentoInicio) {
-      filtered = filtered.filter(l => 
-        l.data_vencimento && new Date(l.data_vencimento) >= filters.dataVencimentoInicio
-      );
-    }
-    if (filters.dataVencimentoFim) {
-      filtered = filtered.filter(l => 
-        l.data_vencimento && new Date(l.data_vencimento) <= filters.dataVencimentoFim
-      );
-    }
-
-    // Filtro por data de pagamento
-    if (filters.dataPagamentoInicio) {
-      filtered = filtered.filter(l => 
-        l.data_pagamento && new Date(l.data_pagamento) >= filters.dataPagamentoInicio
-      );
-    }
-    if (filters.dataPagamentoFim) {
-      filtered = filtered.filter(l => 
-        l.data_pagamento && new Date(l.data_pagamento) <= filters.dataPagamentoFim
-      );
-    }
-
-    return filtered;
-  }, [lancamentos, filters]);
+  // Filtrar lançamentos usando o hook
+  const filteredLancamentos = useFilteredLancamentos(lancamentos, filters);
 
   // Ordenar lançamentos filtrados
   const sortedLancamentos = useMemo(() => {
@@ -201,6 +110,12 @@ const SaidasTabEnhanced = () => {
           aVal = catA?.nome || '';
           bVal = catB?.nome || '';
           break;
+        case 'centro_custo':
+          const ccA = centrosCusto.find(cc => cc.id === a.centro_custo_id);
+          const ccB = centrosCusto.find(cc => cc.id === b.centro_custo_id);
+          aVal = ccA?.nome || '';
+          bVal = ccB?.nome || '';
+          break;
         case 'data_vencimento':
           aVal = a.data_vencimento || '';
           bVal = b.data_vencimento || '';
@@ -222,17 +137,14 @@ const SaidasTabEnhanced = () => {
     });
     
     return sorted;
-  }, [filteredLancamentos, sortField, sortDirection, categorias]);
+  }, [filteredLancamentos, sortField, sortDirection, categorias, centrosCusto]);
 
+  // Totais baseados nos dados filtrados
   const totalSaidas = sortedLancamentos.reduce((acc, saida) => acc + saida.valor, 0);
   const saidasPendentes = sortedLancamentos.filter(s => s.status === "pendente");
   const totalPendentes = saidasPendentes.reduce((acc, saida) => acc + saida.valor, 0);
-  const saidasAtrasadas = sortedLancamentos.filter(s => 
-    s.status === "pendente" && 
-    s.data_vencimento && 
-    new Date(s.data_vencimento) < new Date()
-  );
-  const totalAtrasados = saidasAtrasadas.reduce((acc, saida) => acc + saida.valor, 0);
+  const saidasPagas = sortedLancamentos.filter(s => s.status === "pago");
+  const totalPagos = saidasPagas.reduce((acc, saida) => acc + saida.valor, 0);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -329,13 +241,21 @@ const SaidasTabEnhanced = () => {
   };
 
   const handleExportExcel = () => {
-    const headers = ['Data', 'Descrição', 'Valor', 'Status'];
-    const data = sortedLancamentos.map(s => [
-      formatDate(s.data_vencimento),
-      s.descricao,
-      formatCurrency(s.valor),
-      s.status
-    ]);
+    const headers = ['Data', 'Descrição', 'Categoria', 'Centro Custo', 'Fornecedor', 'Valor', 'Status'];
+    const data = sortedLancamentos.map(s => {
+      const categoria = categorias.find(cat => cat.id === s.categoria_id);
+      const centroCusto = centrosCusto.find(cc => cc.id === s.centro_custo_id);
+      const fornecedor = fornecedores.find(f => f.id === s.fornecedor_id);
+      return [
+        formatDate(s.data_vencimento),
+        s.descricao,
+        categoria?.nome || '-',
+        centroCusto?.nome || '-',
+        fornecedor?.nome || '-',
+        formatCurrency(s.valor),
+        s.status
+      ];
+    });
 
     exportToExcel({
       headers,
@@ -346,13 +266,21 @@ const SaidasTabEnhanced = () => {
   };
 
   const handleExportPDF = () => {
-    const headers = ['Data', 'Descrição', 'Valor', 'Status'];
-    const data = sortedLancamentos.map(s => [
-      formatDate(s.data_vencimento),
-      s.descricao,
-      formatCurrency(s.valor),
-      s.status
-    ]);
+    const headers = ['Data', 'Descrição', 'Categoria', 'Centro Custo', 'Fornecedor', 'Valor', 'Status'];
+    const data = sortedLancamentos.map(s => {
+      const categoria = categorias.find(cat => cat.id === s.categoria_id);
+      const centroCusto = centrosCusto.find(cc => cc.id === s.centro_custo_id);
+      const fornecedor = fornecedores.find(f => f.id === s.fornecedor_id);
+      return [
+        formatDate(s.data_vencimento),
+        s.descricao,
+        categoria?.nome || '-',
+        centroCusto?.nome || '-',
+        fornecedor?.nome || '-',
+        formatCurrency(s.valor),
+        s.status
+      ];
+    });
 
     exportToPDF({
       headers,
@@ -403,10 +331,10 @@ const SaidasTabEnhanced = () => {
         <Card className="h-molina-card">
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
-              <DollarSign className="w-8 h-8 text-atrasado" />
+              <DollarSign className="w-8 h-8 text-green-500" />
               <div>
-                <p className="text-sm text-muted-foreground">Atrasados</p>
-                <p className="text-2xl font-bold text-atrasado">{formatCurrency(totalAtrasados)}</p>
+                <p className="text-sm text-muted-foreground">Pagos</p>
+                <p className="text-2xl font-bold text-green-500">{formatCurrency(totalPagos)}</p>
               </div>
             </div>
           </CardContent>
@@ -416,25 +344,23 @@ const SaidasTabEnhanced = () => {
       {/* Ações e Listagem */}
       <Card className="h-molina-card">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center space-x-2">
               <TrendingDown className="w-5 h-5" />
               <span>Lançamentos de Saída</span>
+              <Badge variant="secondary">{sortedLancamentos.length}</Badge>
             </div>
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                <Filter className="w-4 h-4 mr-2" />
-                Filtros
-                {Object.values(filters).some(f => f && f !== '') && (
-                  <Badge className="ml-2" variant="secondary">
-                    {Object.values(filters).filter(f => f && f !== '').length}
-                  </Badge>
-                )}
-              </Button>
+            <div className="flex flex-wrap gap-2">
+              <LancamentosFilterModal
+                tipo="saida"
+                filters={filters}
+                onFiltersChange={setFilters}
+                categorias={categorias}
+                centrosCusto={centrosCusto}
+                fornecedores={fornecedores}
+                clientes={clientes}
+              />
+              
               <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
                 <DialogTrigger asChild>
                   <Button 
@@ -522,271 +448,6 @@ const SaidasTabEnhanced = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Filtros */}
-          {showFilters && (
-            <div className="mb-6 p-4 border border-border rounded-lg bg-muted/30">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Filtro por Fornecedor */}
-                <div>
-                  <Label htmlFor="filter-fornecedor" className="text-xs">Fornecedor</Label>
-                  <Input
-                    id="filter-fornecedor"
-                    placeholder="Buscar por fornecedor..."
-                    value={filters.fornecedor}
-                    onChange={(e) => setFilters(prev => ({ ...prev, fornecedor: e.target.value }))}
-                    className="h-9"
-                  />
-                </div>
-
-                {/* Filtro por Categoria */}
-                <div>
-                  <Label htmlFor="filter-categoria" className="text-xs">Categoria</Label>
-                  <Select 
-                    value={filters.categoria} 
-                    onValueChange={(value) => setFilters(prev => ({ ...prev, categoria: value }))}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Todas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Todas</SelectItem>
-                      {categorias.filter(cat => cat.tipo === 'saida').map(categoria => (
-                        <SelectItem key={categoria.id} value={categoria.id}>
-                          {categoria.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Filtro por Status */}
-                <div>
-                  <Label htmlFor="filter-status" className="text-xs">Status</Label>
-                  <Select 
-                    value={filters.status} 
-                    onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Todos</SelectItem>
-                      <SelectItem value="pendente">Pendente</SelectItem>
-                      <SelectItem value="pago">Pago</SelectItem>
-                      <SelectItem value="cancelado">Cancelado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Filtro por Valor */}
-                <div className="flex space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="filter-valor-min" className="text-xs">Valor Mín</Label>
-                    <Input
-                      id="filter-valor-min"
-                      type="number"
-                      placeholder="0,00"
-                      value={filters.valorMin}
-                      onChange={(e) => setFilters(prev => ({ ...prev, valorMin: e.target.value }))}
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <Label htmlFor="filter-valor-max" className="text-xs">Valor Máx</Label>
-                    <Input
-                      id="filter-valor-max"
-                      type="number"
-                      placeholder="0,00"
-                      value={filters.valorMax}
-                      onChange={(e) => setFilters(prev => ({ ...prev, valorMax: e.target.value }))}
-                      className="h-9"
-                    />
-                  </div>
-                </div>
-
-                {/* Filtro por Data de Emissão */}
-                <div className="flex space-x-2">
-                  <div className="flex-1">
-                    <Label className="text-xs">Data Emissão - Início</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-9 justify-start text-left font-normal",
-                            !filters.dataEmissaoInicio && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {filters.dataEmissaoInicio ? format(filters.dataEmissaoInicio, "dd/MM/yyyy") : "Início"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={filters.dataEmissaoInicio}
-                          onSelect={(date) => setFilters(prev => ({ ...prev, dataEmissaoInicio: date }))}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="flex-1">
-                    <Label className="text-xs">Data Emissão - Fim</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-9 justify-start text-left font-normal",
-                            !filters.dataEmissaoFim && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {filters.dataEmissaoFim ? format(filters.dataEmissaoFim, "dd/MM/yyyy") : "Fim"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={filters.dataEmissaoFim}
-                          onSelect={(date) => setFilters(prev => ({ ...prev, dataEmissaoFim: date }))}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-
-                {/* Filtro por Data de Vencimento */}
-                <div className="flex space-x-2">
-                  <div className="flex-1">
-                    <Label className="text-xs">Data Vencimento - Início</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-9 justify-start text-left font-normal",
-                            !filters.dataVencimentoInicio && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {filters.dataVencimentoInicio ? format(filters.dataVencimentoInicio, "dd/MM/yyyy") : "Início"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={filters.dataVencimentoInicio}
-                          onSelect={(date) => setFilters(prev => ({ ...prev, dataVencimentoInicio: date }))}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="flex-1">
-                    <Label className="text-xs">Data Vencimento - Fim</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-9 justify-start text-left font-normal",
-                            !filters.dataVencimentoFim && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {filters.dataVencimentoFim ? format(filters.dataVencimentoFim, "dd/MM/yyyy") : "Fim"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={filters.dataVencimentoFim}
-                          onSelect={(date) => setFilters(prev => ({ ...prev, dataVencimentoFim: date }))}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-
-                {/* Filtro por Data de Pagamento */}
-                <div className="flex space-x-2">
-                  <div className="flex-1">
-                    <Label className="text-xs">Data Pagamento - Início</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-9 justify-start text-left font-normal",
-                            !filters.dataPagamentoInicio && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {filters.dataPagamentoInicio ? format(filters.dataPagamentoInicio, "dd/MM/yyyy") : "Início"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={filters.dataPagamentoInicio}
-                          onSelect={(date) => setFilters(prev => ({ ...prev, dataPagamentoInicio: date }))}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="flex-1">
-                    <Label className="text-xs">Data Pagamento - Fim</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-9 justify-start text-left font-normal",
-                            !filters.dataPagamentoFim && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {filters.dataPagamentoFim ? format(filters.dataPagamentoFim, "dd/MM/yyyy") : "Fim"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={filters.dataPagamentoFim}
-                          onSelect={(date) => setFilters(prev => ({ ...prev, dataPagamentoFim: date }))}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-
-                {/* Botão Limpar Filtros */}
-                <div className="flex items-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={clearFilters}
-                    className="w-full"
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    Limpar Filtros
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
           {loading ? (
             <div className="text-center py-8">Carregando...</div>
           ) : (
@@ -810,17 +471,8 @@ const SaidasTabEnhanced = () => {
                         onClick={() => handleSort('fornecedor')}
                       >
                         <div className="flex items-center">
-                          Fornecedor
+                          Descrição
                           {getSortIcon('fornecedor')}
-                        </div>
-                      </th>
-                      <th 
-                        className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-                        onClick={() => handleSort('data_emissao')}
-                      >
-                        <div className="flex items-center">
-                          Data de Emissão
-                          {getSortIcon('data_emissao')}
                         </div>
                       </th>
                       <th 
@@ -834,20 +486,20 @@ const SaidasTabEnhanced = () => {
                       </th>
                       <th 
                         className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-                        onClick={() => handleSort('data_vencimento')}
+                        onClick={() => handleSort('centro_custo')}
                       >
                         <div className="flex items-center">
-                          Data Vencimento
-                          {getSortIcon('data_vencimento')}
+                          Centro Custo
+                          {getSortIcon('centro_custo')}
                         </div>
                       </th>
                       <th 
                         className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-                        onClick={() => handleSort('data_pagamento')}
+                        onClick={() => handleSort('data_vencimento')}
                       >
                         <div className="flex items-center">
-                          Data Pagamento
-                          {getSortIcon('data_pagamento')}
+                          Vencimento
+                          {getSortIcon('data_vencimento')}
                         </div>
                       </th>
                       <th 
@@ -874,6 +526,8 @@ const SaidasTabEnhanced = () => {
                   <tbody>
                     {sortedLancamentos.map((saida) => {
                       const categoria = categorias.find(cat => cat.id === saida.categoria_id);
+                      const centroCusto = centrosCusto.find(cc => cc.id === saida.centro_custo_id);
+                      const fornecedor = fornecedores.find(f => f.id === saida.fornecedor_id);
                       const isAtrasado = saida.status === 'pendente' && 
                                        saida.data_vencimento && 
                                        new Date(saida.data_vencimento) < new Date();
@@ -890,18 +544,28 @@ const SaidasTabEnhanced = () => {
                               disabled={saida.status === "pago"}
                             />
                           </td>
-                          <td className="px-4 py-3 text-sm">{saida.descricao}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">
-                            {formatDate(saida.data_vencimento)}
+                          <td className="px-4 py-3 text-sm">
+                            <div className="flex flex-col">
+                              <span className="font-medium">{saida.descricao}</span>
+                              {fornecedor && (
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Building2 className="w-3 h-3" />
+                                  {fornecedor.nome}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">
                             {categoria?.nome || '-'}
                           </td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">
-                            {saida.data_vencimento ? formatDate(saida.data_vencimento) : '-'}
+                            <div className="flex items-center gap-1">
+                              <Building2 className="w-3 h-3" />
+                              {centroCusto?.nome || '-'}
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">
-                            {saida.data_pagamento ? formatDate(saida.data_pagamento) : '-'}
+                            {saida.data_vencimento ? formatDate(saida.data_vencimento) : '-'}
                           </td>
                           <td className="px-4 py-3 text-sm text-right font-medium text-saida">
                             {formatCurrency(saida.valor)}
