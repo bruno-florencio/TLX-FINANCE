@@ -2,9 +2,7 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -22,8 +20,7 @@ import {
   ArrowUp,
   ArrowDown,
   CalendarIcon,
-  Filter,
-  X
+  Building2
 } from "lucide-react";
 import { exportToExcel, exportToPDF, formatCurrency, formatDate } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
@@ -34,8 +31,9 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import NovaEntradaSheet from "@/components/forms/NovaEntradaSheet";
+import { LancamentosFilterModal, LancamentosFilters, useFilteredLancamentos } from "@/components/filters/LancamentosFilterModal";
 
-type SortField = 'cliente' | 'data_emissao' | 'categoria' | 'data_vencimento' | 'data_pagamento' | 'valor' | 'status';
+type SortField = 'cliente' | 'data_emissao' | 'categoria' | 'centro_custo' | 'data_vencimento' | 'data_pagamento' | 'valor' | 'status';
 type SortDirection = 'asc' | 'desc';
 
 const EntradasTabEnhanced = () => {
@@ -47,26 +45,23 @@ const EntradasTabEnhanced = () => {
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [receiveDate, setReceiveDate] = useState<Date | undefined>(new Date());
-  const [showFilters, setShowFilters] = useState(false);
   
-  // Estados para filtros
-  const [filters, setFilters] = useState({
-    cliente: '',
-    categoria: '',
+  // Estado para filtros
+  const [filters, setFilters] = useState<LancamentosFilters>({
+    dataInicio: undefined,
+    dataFim: undefined,
     status: '',
+    categoria: '',
+    centroCusto: '',
+    fornecedorCliente: '',
     valorMin: '',
     valorMax: '',
-    dataEmissaoInicio: undefined as Date | undefined,
-    dataEmissaoFim: undefined as Date | undefined,
-    dataVencimentoInicio: undefined as Date | undefined,
-    dataVencimentoFim: undefined as Date | undefined,
-    dataRecebimentoInicio: undefined as Date | undefined,
-    dataRecebimentoFim: undefined as Date | undefined,
+    descricao: '',
   });
 
   // Hooks para dados
   const { lancamentos, loading, refetch, markAsPaid, deleteLancamento } = useLancamentos('entrada');
-  const { categorias } = useSupabaseData();
+  const { categorias, centrosCusto, fornecedores, clientes } = useSupabaseData();
 
   // Função para alternar ordenação
   const handleSort = (field: SortField) => {
@@ -88,94 +83,8 @@ const EntradasTabEnhanced = () => {
       : <ArrowDown className="w-3 h-3 ml-1" />;
   };
 
-  // Limpar filtros
-  const clearFilters = () => {
-    setFilters({
-      cliente: '',
-      categoria: '',
-      status: '',
-      valorMin: '',
-      valorMax: '',
-      dataEmissaoInicio: undefined,
-      dataEmissaoFim: undefined,
-      dataVencimentoInicio: undefined,
-      dataVencimentoFim: undefined,
-      dataRecebimentoInicio: undefined,
-      dataRecebimentoFim: undefined,
-    });
-  };
-
-  // Filtrar lançamentos
-  const filteredLancamentos = useMemo(() => {
-    let filtered = [...lancamentos];
-
-    // Filtro por cliente
-    if (filters.cliente) {
-      filtered = filtered.filter(l => 
-        l.descricao?.toLowerCase().includes(filters.cliente.toLowerCase())
-      );
-    }
-
-    // Filtro por categoria
-    if (filters.categoria) {
-      filtered = filtered.filter(l => l.categoria_id === filters.categoria);
-    }
-
-    // Filtro por status
-    if (filters.status) {
-      filtered = filtered.filter(l => l.status === filters.status);
-    }
-
-    // Filtro por valor mínimo
-    if (filters.valorMin) {
-      const min = parseFloat(filters.valorMin);
-      filtered = filtered.filter(l => l.valor >= min);
-    }
-
-    // Filtro por valor máximo
-    if (filters.valorMax) {
-      const max = parseFloat(filters.valorMax);
-      filtered = filtered.filter(l => l.valor <= max);
-    }
-
-    // Filtro por data de emissão (usando data_vencimento)
-    if (filters.dataEmissaoInicio) {
-      filtered = filtered.filter(l => 
-        l.data_vencimento && new Date(l.data_vencimento) >= filters.dataEmissaoInicio
-      );
-    }
-    if (filters.dataEmissaoFim) {
-      filtered = filtered.filter(l => 
-        l.data_vencimento && new Date(l.data_vencimento) <= filters.dataEmissaoFim
-      );
-    }
-
-    // Filtro por data de vencimento
-    if (filters.dataVencimentoInicio) {
-      filtered = filtered.filter(l => 
-        l.data_vencimento && new Date(l.data_vencimento) >= filters.dataVencimentoInicio
-      );
-    }
-    if (filters.dataVencimentoFim) {
-      filtered = filtered.filter(l => 
-        l.data_vencimento && new Date(l.data_vencimento) <= filters.dataVencimentoFim
-      );
-    }
-
-    // Filtro por data de recebimento
-    if (filters.dataRecebimentoInicio) {
-      filtered = filtered.filter(l => 
-        l.data_pagamento && new Date(l.data_pagamento) >= filters.dataRecebimentoInicio
-      );
-    }
-    if (filters.dataRecebimentoFim) {
-      filtered = filtered.filter(l => 
-        l.data_pagamento && new Date(l.data_pagamento) <= filters.dataRecebimentoFim
-      );
-    }
-
-    return filtered;
-  }, [lancamentos, filters]);
+  // Filtrar lançamentos usando o hook
+  const filteredLancamentos = useFilteredLancamentos(lancamentos, filters);
 
   // Ordenar lançamentos filtrados
   const sortedLancamentos = useMemo(() => {
@@ -201,6 +110,12 @@ const EntradasTabEnhanced = () => {
           aVal = catA?.nome || '';
           bVal = catB?.nome || '';
           break;
+        case 'centro_custo':
+          const ccA = centrosCusto.find(cc => cc.id === a.centro_custo_id);
+          const ccB = centrosCusto.find(cc => cc.id === b.centro_custo_id);
+          aVal = ccA?.nome || '';
+          bVal = ccB?.nome || '';
+          break;
         case 'data_vencimento':
           aVal = a.data_vencimento || '';
           bVal = b.data_vencimento || '';
@@ -222,17 +137,14 @@ const EntradasTabEnhanced = () => {
     });
     
     return sorted;
-  }, [filteredLancamentos, sortField, sortDirection, categorias]);
+  }, [filteredLancamentos, sortField, sortDirection, categorias, centrosCusto]);
 
+  // Totais baseados nos dados filtrados
   const totalEntradas = sortedLancamentos.reduce((acc, entrada) => acc + entrada.valor, 0);
   const entradasPendentes = sortedLancamentos.filter(e => e.status === "pendente");
   const totalPendentes = entradasPendentes.reduce((acc, entrada) => acc + entrada.valor, 0);
-  const entradasAtrasadas = sortedLancamentos.filter(e => 
-    e.status === "pendente" && 
-    e.data_vencimento && 
-    new Date(e.data_vencimento) < new Date()
-  );
-  const totalAtrasados = entradasAtrasadas.reduce((acc, entrada) => acc + entrada.valor, 0);
+  const entradasPagas = sortedLancamentos.filter(e => e.status === "pago");
+  const totalPagos = entradasPagas.reduce((acc, entrada) => acc + entrada.valor, 0);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -325,17 +237,23 @@ const EntradasTabEnhanced = () => {
     setSelectedItems([]);
     setReceiveDialogOpen(false);
     setReceiveDate(new Date());
-    window.location.reload(); // Recarregar para atualizar a lista
+    refetch();
   };
 
   const handleExportExcel = () => {
-    const headers = ['Data', 'Descrição', 'Valor', 'Status'];
-    const data = sortedLancamentos.map(e => [
-      formatDate(e.data_vencimento),
-      e.descricao,
-      formatCurrency(e.valor),
-      e.status
-    ]);
+    const headers = ['Data', 'Descrição', 'Categoria', 'Centro Custo', 'Valor', 'Status'];
+    const data = sortedLancamentos.map(e => {
+      const categoria = categorias.find(cat => cat.id === e.categoria_id);
+      const centroCusto = centrosCusto.find(cc => cc.id === e.centro_custo_id);
+      return [
+        formatDate(e.data_vencimento),
+        e.descricao,
+        categoria?.nome || '-',
+        centroCusto?.nome || '-',
+        formatCurrency(e.valor),
+        e.status
+      ];
+    });
 
     exportToExcel({
       headers,
@@ -346,13 +264,19 @@ const EntradasTabEnhanced = () => {
   };
 
   const handleExportPDF = () => {
-    const headers = ['Data', 'Descrição', 'Valor', 'Status'];
-    const data = sortedLancamentos.map(e => [
-      formatDate(e.data_vencimento),
-      e.descricao,
-      formatCurrency(e.valor),
-      e.status
-    ]);
+    const headers = ['Data', 'Descrição', 'Categoria', 'Centro Custo', 'Valor', 'Status'];
+    const data = sortedLancamentos.map(e => {
+      const categoria = categorias.find(cat => cat.id === e.categoria_id);
+      const centroCusto = centrosCusto.find(cc => cc.id === e.centro_custo_id);
+      return [
+        formatDate(e.data_vencimento),
+        e.descricao,
+        categoria?.nome || '-',
+        centroCusto?.nome || '-',
+        formatCurrency(e.valor),
+        e.status
+      ];
+    });
 
     exportToPDF({
       headers,
@@ -403,10 +327,10 @@ const EntradasTabEnhanced = () => {
         <Card className="h-molina-card">
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
-              <DollarSign className="w-8 h-8 text-atrasado" />
+              <DollarSign className="w-8 h-8 text-green-500" />
               <div>
-                <p className="text-sm text-muted-foreground">Atrasados</p>
-                <p className="text-2xl font-bold text-atrasado">{formatCurrency(totalAtrasados)}</p>
+                <p className="text-sm text-muted-foreground">Recebidos</p>
+                <p className="text-2xl font-bold text-green-500">{formatCurrency(totalPagos)}</p>
               </div>
             </div>
           </CardContent>
@@ -416,25 +340,23 @@ const EntradasTabEnhanced = () => {
       {/* Ações e Listagem */}
       <Card className="h-molina-card">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center space-x-2">
               <TrendingUp className="w-5 h-5" />
               <span>Lançamentos de Entrada</span>
+              <Badge variant="secondary">{sortedLancamentos.length}</Badge>
             </div>
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                <Filter className="w-4 h-4 mr-2" />
-                Filtros
-                {Object.values(filters).some(f => f && f !== '') && (
-                  <Badge className="ml-2" variant="secondary">
-                    {Object.values(filters).filter(f => f && f !== '').length}
-                  </Badge>
-                )}
-              </Button>
+            <div className="flex flex-wrap gap-2">
+              <LancamentosFilterModal
+                tipo="entrada"
+                filters={filters}
+                onFiltersChange={setFilters}
+                categorias={categorias}
+                centrosCusto={centrosCusto}
+                fornecedores={fornecedores}
+                clientes={clientes}
+              />
+              
               <Dialog open={receiveDialogOpen} onOpenChange={setReceiveDialogOpen}>
                 <DialogTrigger asChild>
                   <Button 
@@ -522,271 +444,6 @@ const EntradasTabEnhanced = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Filtros */}
-          {showFilters && (
-            <div className="mb-6 p-4 border border-border rounded-lg bg-muted/30">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Filtro por Cliente */}
-                <div>
-                  <Label htmlFor="filter-cliente" className="text-xs">Cliente</Label>
-                  <Input
-                    id="filter-cliente"
-                    placeholder="Buscar por cliente..."
-                    value={filters.cliente}
-                    onChange={(e) => setFilters(prev => ({ ...prev, cliente: e.target.value }))}
-                    className="h-9"
-                  />
-                </div>
-
-                {/* Filtro por Categoria */}
-                <div>
-                  <Label htmlFor="filter-categoria" className="text-xs">Categoria</Label>
-                  <Select 
-                    value={filters.categoria} 
-                    onValueChange={(value) => setFilters(prev => ({ ...prev, categoria: value }))}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Todas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Todas</SelectItem>
-                      {categorias.filter(cat => cat.tipo === 'entrada').map(categoria => (
-                        <SelectItem key={categoria.id} value={categoria.id}>
-                          {categoria.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Filtro por Status */}
-                <div>
-                  <Label htmlFor="filter-status" className="text-xs">Status</Label>
-                  <Select 
-                    value={filters.status} 
-                    onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Todos</SelectItem>
-                      <SelectItem value="pendente">Pendente</SelectItem>
-                      <SelectItem value="pago">Pago</SelectItem>
-                      <SelectItem value="cancelado">Cancelado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Filtro por Valor */}
-                <div className="flex space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="filter-valor-min" className="text-xs">Valor Mín</Label>
-                    <Input
-                      id="filter-valor-min"
-                      type="number"
-                      placeholder="0,00"
-                      value={filters.valorMin}
-                      onChange={(e) => setFilters(prev => ({ ...prev, valorMin: e.target.value }))}
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <Label htmlFor="filter-valor-max" className="text-xs">Valor Máx</Label>
-                    <Input
-                      id="filter-valor-max"
-                      type="number"
-                      placeholder="0,00"
-                      value={filters.valorMax}
-                      onChange={(e) => setFilters(prev => ({ ...prev, valorMax: e.target.value }))}
-                      className="h-9"
-                    />
-                  </div>
-                </div>
-
-                {/* Filtro por Data de Emissão */}
-                <div className="flex space-x-2">
-                  <div className="flex-1">
-                    <Label className="text-xs">Data Emissão - Início</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-9 justify-start text-left font-normal",
-                            !filters.dataEmissaoInicio && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {filters.dataEmissaoInicio ? format(filters.dataEmissaoInicio, "dd/MM/yyyy") : "Início"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={filters.dataEmissaoInicio}
-                          onSelect={(date) => setFilters(prev => ({ ...prev, dataEmissaoInicio: date }))}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="flex-1">
-                    <Label className="text-xs">Data Emissão - Fim</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-9 justify-start text-left font-normal",
-                            !filters.dataEmissaoFim && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {filters.dataEmissaoFim ? format(filters.dataEmissaoFim, "dd/MM/yyyy") : "Fim"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={filters.dataEmissaoFim}
-                          onSelect={(date) => setFilters(prev => ({ ...prev, dataEmissaoFim: date }))}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-
-                {/* Filtro por Data de Vencimento */}
-                <div className="flex space-x-2">
-                  <div className="flex-1">
-                    <Label className="text-xs">Data Vencimento - Início</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-9 justify-start text-left font-normal",
-                            !filters.dataVencimentoInicio && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {filters.dataVencimentoInicio ? format(filters.dataVencimentoInicio, "dd/MM/yyyy") : "Início"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={filters.dataVencimentoInicio}
-                          onSelect={(date) => setFilters(prev => ({ ...prev, dataVencimentoInicio: date }))}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="flex-1">
-                    <Label className="text-xs">Data Vencimento - Fim</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-9 justify-start text-left font-normal",
-                            !filters.dataVencimentoFim && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {filters.dataVencimentoFim ? format(filters.dataVencimentoFim, "dd/MM/yyyy") : "Fim"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={filters.dataVencimentoFim}
-                          onSelect={(date) => setFilters(prev => ({ ...prev, dataVencimentoFim: date }))}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-
-                {/* Filtro por Data de Recebimento */}
-                <div className="flex space-x-2">
-                  <div className="flex-1">
-                    <Label className="text-xs">Data Recebimento - Início</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-9 justify-start text-left font-normal",
-                            !filters.dataRecebimentoInicio && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {filters.dataRecebimentoInicio ? format(filters.dataRecebimentoInicio, "dd/MM/yyyy") : "Início"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={filters.dataRecebimentoInicio}
-                          onSelect={(date) => setFilters(prev => ({ ...prev, dataRecebimentoInicio: date }))}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="flex-1">
-                    <Label className="text-xs">Data Recebimento - Fim</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-9 justify-start text-left font-normal",
-                            !filters.dataRecebimentoFim && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {filters.dataRecebimentoFim ? format(filters.dataRecebimentoFim, "dd/MM/yyyy") : "Fim"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={filters.dataRecebimentoFim}
-                          onSelect={(date) => setFilters(prev => ({ ...prev, dataRecebimentoFim: date }))}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-
-                {/* Botão Limpar Filtros */}
-                <div className="flex items-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={clearFilters}
-                    className="w-full"
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    Limpar Filtros
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
           {loading ? (
             <div className="text-center py-8">Carregando...</div>
           ) : (
@@ -810,17 +467,8 @@ const EntradasTabEnhanced = () => {
                         onClick={() => handleSort('cliente')}
                       >
                         <div className="flex items-center">
-                          Cliente
+                          Descrição
                           {getSortIcon('cliente')}
-                        </div>
-                      </th>
-                      <th 
-                        className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-                        onClick={() => handleSort('data_emissao')}
-                      >
-                        <div className="flex items-center">
-                          Data de Emissão
-                          {getSortIcon('data_emissao')}
                         </div>
                       </th>
                       <th 
@@ -834,20 +482,20 @@ const EntradasTabEnhanced = () => {
                       </th>
                       <th 
                         className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-                        onClick={() => handleSort('data_vencimento')}
+                        onClick={() => handleSort('centro_custo')}
                       >
                         <div className="flex items-center">
-                          Data Vencimento
-                          {getSortIcon('data_vencimento')}
+                          Centro Custo
+                          {getSortIcon('centro_custo')}
                         </div>
                       </th>
                       <th 
                         className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-                        onClick={() => handleSort('data_pagamento')}
+                        onClick={() => handleSort('data_vencimento')}
                       >
                         <div className="flex items-center">
-                          Data Recebimento
-                          {getSortIcon('data_pagamento')}
+                          Vencimento
+                          {getSortIcon('data_vencimento')}
                         </div>
                       </th>
                       <th 
@@ -874,6 +522,7 @@ const EntradasTabEnhanced = () => {
                   <tbody>
                     {sortedLancamentos.map((entrada) => {
                       const categoria = categorias.find(cat => cat.id === entrada.categoria_id);
+                      const centroCusto = centrosCusto.find(cc => cc.id === entrada.centro_custo_id);
                       const isAtrasado = entrada.status === 'pendente' && 
                                        entrada.data_vencimento && 
                                        new Date(entrada.data_vencimento) < new Date();
@@ -890,18 +539,18 @@ const EntradasTabEnhanced = () => {
                               disabled={entrada.status === "pago"}
                             />
                           </td>
-                          <td className="px-4 py-3 text-sm">{entrada.descricao}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">
-                            {formatDate(entrada.data_vencimento)}
-                          </td>
+                          <td className="px-4 py-3 text-sm font-medium">{entrada.descricao}</td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">
                             {categoria?.nome || '-'}
                           </td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">
-                            {entrada.data_vencimento ? formatDate(entrada.data_vencimento) : '-'}
+                            <div className="flex items-center gap-1">
+                              <Building2 className="w-3 h-3" />
+                              {centroCusto?.nome || '-'}
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">
-                            {entrada.data_pagamento ? formatDate(entrada.data_pagamento) : '-'}
+                            {entrada.data_vencimento ? formatDate(entrada.data_vencimento) : '-'}
                           </td>
                           <td className="px-4 py-3 text-sm text-right font-medium text-entrada">
                             {formatCurrency(entrada.valor)}
@@ -916,7 +565,7 @@ const EntradasTabEnhanced = () => {
                                   variant="ghost" 
                                   size="sm" 
                                   onClick={() => handleMarkAsPaid(entrada.id)}
-                                  title="Marcar como pago"
+                                  title="Marcar como recebido"
                                 >
                                   <Check className="w-4 h-4" />
                                 </Button>
