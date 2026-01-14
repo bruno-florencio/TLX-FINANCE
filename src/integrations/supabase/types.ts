@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       categorias: {
         Row: {
+          ativo: boolean
           cor: string | null
           created_at: string
           id: string
@@ -26,6 +27,7 @@ export type Database = {
           workspace_id: string | null
         }
         Insert: {
+          ativo?: boolean
           cor?: string | null
           created_at?: string
           id?: string
@@ -36,6 +38,7 @@ export type Database = {
           workspace_id?: string | null
         }
         Update: {
+          ativo?: boolean
           cor?: string | null
           created_at?: string
           id?: string
