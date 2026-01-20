@@ -21,6 +21,11 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import { supabase } from "@/integrations/supabase/client";
 import { bancosUnicos, bandeirasCartao, tiposConta } from "@/data/bancosBrasileiros";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface NovaContaSheetProps {
   open: boolean;
@@ -34,6 +39,7 @@ interface NovaContaSheetProps {
     agencia?: string;
     numero_conta?: string;
     saldo_inicial: number;
+    data_saldo_inicial?: string;
   } | null;
 }
 
@@ -50,6 +56,7 @@ const NovaContaSheet = ({ open, onOpenChange, onSuccess, editingConta }: NovaCon
     agencia: "",
     numero_conta: "",
     saldo_inicial: 0,
+    data_saldo_inicial: "",
     limite_credito: 0,
     dia_fechamento: 1,
     dia_vencimento: 10,
@@ -65,7 +72,8 @@ const NovaContaSheet = ({ open, onOpenChange, onSuccess, editingConta }: NovaCon
         agencia: editingConta.agencia || "",
         numero_conta: editingConta.numero_conta || "",
         saldo_inicial: editingConta.saldo_inicial,
-        limite_credito: 0,
+        data_saldo_inicial: editingConta.data_saldo_inicial || "",
+        limite_credito: 0, 
         dia_fechamento: 1,
         dia_vencimento: 10,
       });
@@ -78,6 +86,7 @@ const NovaContaSheet = ({ open, onOpenChange, onSuccess, editingConta }: NovaCon
         agencia: "",
         numero_conta: "",
         saldo_inicial: 0,
+        data_saldo_inicial: "",
         limite_credito: 0,
         dia_fechamento: 1,
         dia_vencimento: 10,
@@ -94,22 +103,20 @@ const NovaContaSheet = ({ open, onOpenChange, onSuccess, editingConta }: NovaCon
     e.preventDefault();
 
     if (!hasWorkspace) {
-      toast({
-        title: "Erro",
-        description: "Usuário não pertence a nenhum workspace.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Usuário não pertence a nenhum workspace.", variant: "destructive" });
+      return;
+    }
+
+    if (!isCartaoCredito && formData.saldo_inicial !== 0 && !formData.data_saldo_inicial) {
+      toast({ title: "Erro de Validação", description: "A data do saldo inicial é obrigatória quando o saldo inicial é diferente de zero.", variant: "destructive" });
       return;
     }
 
     setLoading(true);
 
     try {
-      const nomeCompleto = isCartaoCredito 
-        ? `${formData.nome} (${bandeiraSelecionada?.nome || ""})`
-        : formData.nome;
+      const nomeCompleto = isCartaoCredito ? `${formData.nome} (${bandeiraSelecionada?.nome || ""})` : formData.nome;
 
-      // workspace_id é obtido automaticamente do hook useWorkspace
       const contaData = {
         nome: nomeCompleto,
         tipo: formData.tipo,
@@ -117,48 +124,55 @@ const NovaContaSheet = ({ open, onOpenChange, onSuccess, editingConta }: NovaCon
         agencia: isCartaoCredito ? null : formData.agencia,
         numero_conta: formData.numero_conta,
         saldo_inicial: isCartaoCredito ? -formData.limite_credito : formData.saldo_inicial,
+        data_saldo_inicial: isCartaoCredito ? null : formData.data_saldo_inicial,
         ativo: true,
         workspace_id: workspaceId,
       };
 
+      let contaId = editingConta?.id;
+
       if (editingConta) {
-        const { error } = await supabase
-          .from("contas_bancarias")
-          .update(contaData)
-          .eq("id", editingConta.id);
-
+        const { error } = await supabase.from("contas_bancarias").update(contaData).eq("id", editingConta.id);
         if (error) throw error;
-
-        toast({
-          title: "Conta atualizada",
-          description: "Conta atualizada com sucesso!",
-        });
       } else {
-        const { error } = await supabase
-          .from("contas_bancarias")
-          .insert([contaData]);
-
+        const { data, error } = await supabase.from("contas_bancarias").insert(contaData).select('id').single();
         if (error) throw error;
+        contaId = data.id;
+      }
+      
+      if (!isCartaoCredito && formData.data_saldo_inicial && contaId) {
+        const lancamentoSaldoInicial = {
+            descricao: 'Saldo Inicial',
+            valor: formData.saldo_inicial,
+            data: formData.data_saldo_inicial,
+            conta_id: contaId,
+            workspace_id: workspaceId,
+            tipo: formData.saldo_inicial >= 0 ? 'receita' : 'despesa',
+            pago: true,
+        };
 
-        toast({
-          title: "Conta cadastrada",
-          description: "Nova conta cadastrada com sucesso!",
-        });
+        const { data: existingLancamento } = await supabase.from('lancamentos').select('id').eq('conta_id', contaId).eq('descricao', 'Saldo Inicial').maybeSingle();
+        
+        const { error: lancamentoError } = await supabase.from('lancamentos').upsert({ id: existingLancamento?.id, ...lancamentoSaldoInicial });
+
+        if (lancamentoError) {
+            console.error("Erro ao salvar lançamento de saldo inicial:", lancamentoError);
+            toast({ title: "Aviso", description: "A conta foi salva, mas houve um erro ao criar o registro de saldo inicial no extrato.", variant: "destructive" });
+        }
       }
 
+      toast({ title: editingConta ? "Conta atualizada" : "Conta cadastrada", description: `A conta ${nomeCompleto} foi salva com sucesso!` });
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
       console.error("Erro ao salvar conta:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Erro ao salvar conta.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: error.message || "Erro ao salvar conta.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
+
+  const selectedDate = formData.data_saldo_inicial ? new Date(formData.data_saldo_inicial + 'T00:00:00') : undefined;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -365,15 +379,48 @@ const NovaContaSheet = ({ open, onOpenChange, onSuccess, editingConta }: NovaCon
               </div>
             </>
           ) : (
-            <div className="space-y-2">
-              <Label>Saldo Inicial (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={formData.saldo_inicial}
-                onChange={(e) => setFormData({ ...formData, saldo_inicial: parseFloat(e.target.value) || 0 })}
-                placeholder="0,00"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Saldo Inicial (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formData.saldo_inicial}
+                  onChange={(e) => setFormData({ ...formData, saldo_inicial: parseFloat(e.target.value) || 0 })}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data do Saldo Inicial</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.data_saldo_inicial && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate ? (
+                        format(selectedDate, "dd/MM/yyyy")
+                      ) : (
+                        <span>Escolha uma data</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-[100]">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) =>
+                        setFormData({ ...formData, data_saldo_inicial: date ? format(date, 'yyyy-MM-dd') : "" })
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           )}
 
